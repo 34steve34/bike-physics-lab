@@ -1,9 +1,10 @@
-import createPhysics from './core.mjs?v=0.1.2';
+import createPhysics from './core.mjs?v=0.1.3';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
+import {drawBike} from './bike-drawing.js?v=0.1.3';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.2';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.3';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
@@ -43,7 +44,7 @@ $('#ride').addEventListener('click',startRide);
 $('#reset').addEventListener('click',()=>{reset();});
 $('#retry').addEventListener('click',()=>{reset();running=true;});
 $('#zero').addEventListener('click',()=>toast(controls.calibrate()?'Neutral tilt set.': 'No motion reading yet. Enable phone tilt in Settings.'));
-$('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=track===2?8:5;$('#zoom').value=viewWidth;reset();});
+$('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=(track===2||track===3)?8:5;$('#zoom').value=viewWidth;reset();});
 $('#settings').addEventListener('click',()=>{settingsBike=acro;controls.clear();$('#options').showModal();});
 $('#save-settings').addEventListener('click',()=>$('#options').close());
 $('#options').addEventListener('close',()=>{last=0;controls.clear();if(acro!==settingsBike)reset();});
@@ -125,32 +126,7 @@ function render(alpha){
   const fx=sx(state[20]),fy=sy(track===2?-.8:0);
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
-  // A new, simple rider drawing follows the actual three masses.
-  const r={x:sx(pose[0]),y:sy(pose[1])},f={x:sx(pose[2]),y:sy(pose[3])},h={x:sx(pose[4]),y:sy(pose[5])};
-  const axle={x:f.x-r.x,y:f.y-r.y},len=Math.hypot(axle.x,axle.y)||1;
-  const u={x:axle.x/len,y:axle.y/len},up={x:u.y,y:-u.x};
-  const center={x:(r.x+f.x)/2,y:(r.y+f.y)/2};
-  const seat={x:center.x-u.x*scale*.045+up.x*scale*.09,y:center.y-u.y*scale*.045+up.y*scale*.09};
-  const bar={x:f.x-u.x*scale*.035+up.x*scale*.16,y:f.y-u.y*scale*.035+up.y*scale*.16};
-  function line(points,color,weight){ctx.strokeStyle=color;ctx.lineWidth=weight;ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.stroke();}
-  line([r,seat,f],'#d9f78d',Math.max(3,scale*.018));
-  line([f,bar],'#b4c6ce',Math.max(2,scale*.012));
-  line([r,{x:center.x+u.x*scale*.03,y:center.y+u.y*scale*.03},seat],'#718d9b',2);
-  for(const [p,a] of [[r,pose[6]],[f,pose[7]]]){
-    const radius=scale*.1;
-    ctx.fillStyle='#0b1620';ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();
-    ctx.strokeStyle='#d3dedc';ctx.lineWidth=2;ctx.stroke();
-    for(let j=0;j<5;j++){const t=-a*Math.PI/180+j*Math.PI*2/5;line([p,{x:p.x+Math.cos(t)*radius*.8,y:p.y+Math.sin(t)*radius*.8}],'#77929d',1);}
-    ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.arc(p.x,p.y,2.4,0,Math.PI*2);ctx.fill();
-  }
-  const hip={x:seat.x-u.x*scale*.035+up.x*scale*.07,y:seat.y-u.y*scale*.035+up.y*scale*.07};
-  const shoulder={x:h.x-u.x*scale*.04-up.x*scale*.065,y:h.y-u.y*scale*.04-up.y*scale*.065};
-  const knee={x:center.x+u.x*scale*.07+up.x*scale*.05,y:center.y+u.y*scale*.07+up.y*scale*.05};
-  line([hip,knee,center],'#efeee4',Math.max(3,scale*.02));line([hip,shoulder,h],'#efeee4',Math.max(4,scale*.028));line([shoulder,bar],'#efeee4',Math.max(3,scale*.018));
-  ctx.fillStyle='#f1b383';ctx.beginPath();ctx.arc(h.x,h.y,scale*.047,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='#f7e9d1';ctx.lineWidth=scale*.014;ctx.stroke();
-  line([{x:h.x+u.x*scale*.02,y:h.y+u.y*scale*.02},{x:h.x+u.x*scale*.052,y:h.y+u.y*scale*.052}],'#192736',scale*.02);
-  if(showPoints){line([r,h,f,r],'#ffb98a99',1);for(const p of [r,f,h]){ctx.fillStyle='#ff866b';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}}
+  drawBike(ctx,pose,sx,sy,scale,showPoints);
   if(track===2&&!loopEntered)for(const b of boards)if(isBridge(b))drawRoad(b);
   const input=replaying?{lean:state[18],gas:false,brake:false}:controls.read();
   $('#tilt-dot').style.left=`${60+input.lean*112}px`;
@@ -172,7 +148,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.2',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.3',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
