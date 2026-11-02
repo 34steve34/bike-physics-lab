@@ -1,12 +1,13 @@
 import createPhysics from './core.mjs';
 import {Controls} from './input.js';
+import {Presentation} from './presentation.js';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), VERSION='0.1.0';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.1';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
-let cam={x:0,y:0.4}, viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
+let viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
 let lastStatus=0,toastTimer, settingsBike=0;
 
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2600);}
@@ -15,7 +16,7 @@ function reset(){
   if(!ready)return;
   core._lab_reset(track,acro);snapshot();
   boards=Array.from({length:core._lab_board_count()},(_,i)=>Array.from({length:4},(_,j)=>core._lab_board_get(i,j)));
-  cam={x:state[8]+0.6,y:state[9]+0.35};
+  presentation.reset(state);
   acc=0;last=0;frames=[];replaying=false;lastStatus=0;controls.clear();
   $('#result').classList.add('hidden');
 }
@@ -31,7 +32,7 @@ async function startRide(){
     try{await screen.orientation.lock('landscape-primary');}catch{}
   }
   await permission;
-  $('#welcome').classList.add('hidden');running=true;last=0;acc=0;
+  $('#welcome').classList.add('hidden');running=true;last=0;
   if(controls.lastSensor)controls.calibrate();
   else if(matchMedia('(pointer:coarse)').matches)toast('Hold neutral, then tap Zero tilt. Left side down should lift the front.');
 }
@@ -42,7 +43,7 @@ $('#zero').addEventListener('click',()=>toast(controls.calibrate()?'Neutral tilt
 $('#track').addEventListener('change',e=>{track=+e.target.value;reset();});
 $('#settings').addEventListener('click',()=>{settingsBike=acro;controls.clear();$('#options').showModal();});
 $('#save-settings').addEventListener('click',()=>$('#options').close());
-$('#options').addEventListener('close',()=>{last=0;acc=0;controls.clear();if(acro!==settingsBike)reset();});
+$('#options').addEventListener('close',()=>{last=0;controls.clear();if(acro!==settingsBike)reset();});
 $('#bike').addEventListener('change',e=>{acro=+e.target.value;});
 $('#sensitivity').addEventListener('change',e=>controls.sensitivity=+e.target.value);
 $('#invert').addEventListener('change',e=>controls.invert=e.target.checked);
@@ -50,7 +51,7 @@ $('#zoom').addEventListener('input',e=>viewWidth=+e.target.value);
 $('#show-points').addEventListener('change',e=>showPoints=e.target.checked);
 $('#enable-tilt').addEventListener('click',async()=>{const ok=await controls.enable();toast(ok?'Tilt enabled. Hold neutral and tap Zero tilt.':'Motion access unavailable or denied. Check browser permissions.');});
 window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'&&!$('#options').open)reset();});
-document.addEventListener('visibilitychange',()=>{last=0;acc=0;controls.clear();});
+document.addEventListener('visibilitychange',()=>{last=0;controls.clear();});
 window.addEventListener('blur',()=>{
   if(running&&!state[14]&&!$('#options').open){running=false;$('#ride').textContent='Resume ride';$('#loading-note').textContent='Your ride is paused.';$('#welcome').classList.remove('hidden');}
 });
@@ -86,19 +87,15 @@ function tick(){
     if(frames.length<36000)frames.push([input.lean,+input.gas,+input.brake]);
     else{running=false;toast('Recording limit reached. Restart for another ride.');return;}
   }
-  core._lab_step(input.lean,+input.gas,+input.brake);snapshot();
+  core._lab_step(input.lean,+input.gas,+input.brake);snapshot();presentation.push(state);
   if(state[14]&&!lastStatus){lastStatus=state[14];finish(lastStatus);}
 }
 
-function render(dt){
+function render(alpha){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#142638');sky.addColorStop(1,'#263a46');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
   if(!ready)return;
-  if(Number.isFinite(state[8])&&Number.isFinite(state[9])){
-    const blend=1-Math.exp(-dt*8);
-    cam.x+=(state[8]+0.6-cam.x)*blend;
-    cam.y+=(state[9]+0.27-cam.y)*blend;
-  }
+  const pose=presentation.sample(alpha), cam=presentation.camera;
   const scale=width/viewWidth, anchorY=height*0.61;
   const sx=x=>(x-cam.x)*scale+width*0.43;
   const sy=y=>anchorY-(y-cam.y)*scale;
@@ -119,7 +116,7 @@ function render(dt){
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
   // A new, simple rider drawing follows the actual three masses.
-  const r={x:sx(state[0]),y:sy(state[1])},f={x:sx(state[2]),y:sy(state[3])},h={x:sx(state[4]),y:sy(state[5])};
+  const r={x:sx(pose[0]),y:sy(pose[1])},f={x:sx(pose[2]),y:sy(pose[3])},h={x:sx(pose[4]),y:sy(pose[5])};
   const axle={x:f.x-r.x,y:f.y-r.y},len=Math.hypot(axle.x,axle.y)||1;
   const u={x:axle.x/len,y:axle.y/len},up={x:u.y,y:-u.x};
   const center={x:(r.x+f.x)/2,y:(r.y+f.y)/2};
@@ -129,7 +126,7 @@ function render(dt){
   line([r,seat,f],'#d9f78d',Math.max(3,scale*.018));
   line([f,bar],'#b4c6ce',Math.max(2,scale*.012));
   line([r,{x:center.x+u.x*scale*.03,y:center.y+u.y*scale*.03},seat],'#718d9b',2);
-  for(const [p,a] of [[r,state[6]],[f,state[7]]]){
+  for(const [p,a] of [[r,pose[6]],[f,pose[7]]]){
     const radius=scale*.1;
     ctx.fillStyle='#0b1620';ctx.beginPath();ctx.arc(p.x,p.y,radius,0,Math.PI*2);ctx.fill();
     ctx.strokeStyle='#d3dedc';ctx.lineWidth=2;ctx.stroke();
@@ -156,8 +153,10 @@ function frame(now){
   const dt=last?Math.min((now-last)/1000,0.05):0;last=now;
   if(ready&&running&&!$('#options').open&&!document.hidden&&!state[14]){
     acc+=dt;let n=0;while(acc>=1/60&&n++<4){tick();acc-=1/60;if(state[14])break;}
-  }else acc=0;
-  render(dt||1/60);requestAnimationFrame(frame);
+  }
+  // On pause keep the last fractional pose rather than snapping backwards.
+  // Terminal states show the final snapshot immediately beneath the result.
+  render(state[14]?1:acc*60);requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
@@ -165,7 +164,7 @@ try{
   const response=await fetch(new URL('./core.wasm',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
-  ready=true;reset();$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
-  $('#loading-note').textContent='Start with Regular, then try Acro in Settings.';
+  ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
+  $('#loading-note').textContent=`v${VERSION} · Start with Regular, then try Acro in Settings.`;
   if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 }catch(error){$('#loading-note').textContent=`Could not load physics. Reload while online. ${error.message}`;$('#ride').textContent='Physics unavailable';console.error(error);}
