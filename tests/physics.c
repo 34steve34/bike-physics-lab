@@ -35,6 +35,21 @@ static void complete_loop(int acro) {
     printf("PASS: %s inside loop, ceiling contact, full turn, lower exit; %.2fs, %.1f degrees.\n",acro?"Acro":"Regular",lab_get(15),turn);
     lab_reset(2,acro); assert(lab_get(22)==0);
 }
+static void complete_drop(int acro) {
+    int n,airborne=0,landed=0;
+    lab_reset(3,acro);
+    assert(lab_get(1)>3.7f && lab_get(3)>3.7f);
+    for(n=0;n<900 && lab_get(14)==0;n++) {
+        lab_step(0,1,0); finite_state();
+        if(lab_get(0)>2.1f && !lab_get(12) && !lab_get(13))airborne=1;
+        if(airborne && (lab_get(12)||lab_get(13))) {
+            assert(lab_get(1)<0.3f || lab_get(3)<0.3f);
+            landed=1;
+        }
+    }
+    assert(airborne && landed && lab_get(14)==2);
+    printf("PASS: %s larger drop, flat landing and finish; %.2fs.\n",acro?"Acro":"Regular",lab_get(15));
+}
 int main(int argc,char **argv) {
     int t,a,n,i,gas,brake; float lean, first[22];
     if(argc>1 && !strcmp(argv[1],"--trace")) {
@@ -66,7 +81,7 @@ int main(int argc,char **argv) {
     lab_reset(0,0);for(n=0;n<300;n++){lab_step(-0.5f,1,0);finite_state();}
     assert(lab_get(14)==0);assert(fabsf(lab_get(11))<12);
     /* Long, varied runs across both bikes and every original test track. */
-    complete_loop(0);complete_loop(1);
+    complete_loop(0);complete_loop(1);complete_drop(0);complete_drop(1);
     for(t=0;t<4;t++)for(a=0;a<2;a++)for(i=0;i<3;i++) {
         lab_reset(t,a);
         for(n=0;n<2700;n++){
