@@ -34,10 +34,14 @@ static void segment(float ax, float ay, float bx, float by)
     }
 }
 
+#include "hills-track.h"
+
 static void make_track(int track)
 {
     count = 0; building_road=ROAD_COMMON; spawn_y = 0.04f; finish_y = -0.3f;
-    if (track == 1) {
+    if (track == 4) {
+        make_hills();
+    } else if (track == 1) {
         segment(-4,0,3,0); segment(3,0,4.8f,0.65f);
         segment(4.8f,0.65f,6.6f,0); segment(6.6f,0,8,0);
         segment(8,0,9.5f,1.3f); segment(9.5f,1.3f,10.3f,1.65f);
@@ -90,7 +94,7 @@ static void update_snapshot(void)
 void lab_reset(int track, int acro)
 {
     vec2 spawn;
-    track_id = track >= 0 && track <= 3 ? track : 0;
+    track_id = track >= 0 && track <= 4 ? track : 0;
     acro_id = acro != 0;
     make_track(track_id);
     v2_set(&spawn,0,spawn_y);
