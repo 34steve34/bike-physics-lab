@@ -12,7 +12,8 @@ emcc "${SOURCES[@]}" -std=c99 -O2 -ffp-contract=off -fno-fast-math \
   --no-entry -o dist/core.mjs
 STAMP="${GITHUB_SHA:-local}"
 sed -i "s/__BUILD__/${STAMP}/g" dist/sw.js
-printf '{"version":"0.1.0","commit":"%s","upstream":"a697be26244cddfb294f147055b7ea0eb5c04fc6"}\n' "$STAMP" > dist/build.json
+VERSION="$(node -p 'JSON.parse(require("fs").readFileSync("package.json","utf8")).version')"
+printf '{"version":"%s","commit":"%s","upstream":"a697be26244cddfb294f147055b7ea0eb5c04fc6"}\n' "$VERSION" "$STAMP" > dist/build.json
 touch dist/.nojekyll
 cc "${SOURCES[@]}" tests/physics.c -std=c99 -O2 -ffp-contract=off -fno-fast-math -lm -o build/physics-test
 ./build/physics-test
