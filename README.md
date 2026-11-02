@@ -39,6 +39,19 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Race clock and finish (v0.1.5)
+
+The race clock stays at zero until the first gas or brake input. Releasing both
+controls keeps the clock running; Restart clears it. Tilt alone does not start
+it. Waiting still allows the physical bike to settle.
+
+Only the upper physics point crossing the flag from left to right above the
+finish ground completes a race. Crossing below the ground and then rising on
+the far side does not count. The crossing height is checked within each physics
+substep, using the actual ground height of each course. The visible helmet and
+wheel crossings do not determine the finish. Crashes show a retry without a
+finishing time.
+
 ## Video reconstruction (v0.1.4)
 
 Select **Hills / video** for the first full course reconstructed from a recorded
