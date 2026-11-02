@@ -5,7 +5,7 @@ const wasm=await factory({wasmBinary:await readFile(new URL('../dist/core.wasm',
 const trace=JSON.parse(await readFile(new URL('../build/native-trace.json',import.meta.url),'utf8'));
 let row=0,worst=0;
 const mismatches=[],loopWorst=new Array(22).fill(0);
-for(let t=0;t<4;t++)for(let a=0;a<2;a++){
+for(let t=0;t<5;t++)for(let a=0;a<2;a++){
   wasm._lab_reset(t,a);
   let turn=0,previous=0,ceiling=false,leftWall=false,underpass=false;
   for(let n=0;n<(t===2?360:120);n++){
@@ -75,5 +75,40 @@ for(const acro of [0,1]){
   console.log(`PASS: browser ${acro?'Acro':'Regular'} larger drop and flat landing.`);
 }
 // Complete input replay must produce exactly the same browser state twice.
+// Video course: steer using ordinary inputs and verify the intended route.
+for(const acro of [0,1]){
+  wasm._lab_reset(4,acro);
+  const get=i=>wasm._lab_get(i);
+  assert.equal(get(19),4);assert(wasm._lab_board_count()>400);
+  let stage=0,stairs=false,ceiling=false,leftWall=false,exited=false,bowl=false;
+  for(let n=0;n<1200&&!get(14);n++){
+    let x=get(8),y=get(9),target=0;
+    if(!stage&&x>14.3&&y>3.6)stage=1;
+    if(stage===1&&x<14.5&&y<3.7)stage=2;
+    if(x<1.4)target=0;
+    else if(x<3.1)target=Math.min(1.22,(x-1.4)*1.3);
+    else if(x<11.3)target=-Math.PI/4;
+    else if(stage===0)target=x<12.9?0:x<14.85?Math.min(1.02,(x-12.9)*1.2):1.5;
+    else if(stage===1)target=Math.atan2(y-4.15,x-14.35)+Math.PI/2;
+    else if(x<15.8)target=0;
+    else if(x<18.4)target=Math.min(1.03,(x-15.8)*1.2);
+    else if(x<23.4)target=0;
+    else if(x<25.3)target=-.63;
+    else if(x<26.5)target=0;
+    else if(x<27.9)target=.8;
+    const angle=Math.atan2(get(3)-get(1),get(2)-get(0)),error=target-angle;
+    wasm._lab_step(.16*Math.atan2(Math.sin(error),Math.cos(error))/(acro?1.5:1),1,0);
+    for(let i=0;i<22;i++)assert(Number.isFinite(get(i)));
+    x=get(8);y=get(9);
+    stairs ||= x>4&&x<11&&!!(get(12)||get(13));
+    ceiling ||= x>14&&x<14.7&&get(1)>4.8&&get(3)>4.8&&get(5)<get(1)&&get(5)<get(3)&&!!get(12)&&!!get(13);
+    leftWall ||= stage===1&&x<13.85&&!!get(12)&&!!get(13);
+    exited ||= stage===2&&x>15.3&&x<15.9&&!!(get(12)||get(13));
+    bowl ||= x>25.4&&x<27&&y<5.3&&!!(get(12)||get(13));
+  }
+  assert.equal(get(14),2,'Hills finishes');assert(get(5)>6.73,'finish height');
+  assert(stairs&&ceiling&&leftWall&&exited&&bowl,JSON.stringify({stairs,ceiling,leftWall,exited,bowl}));
+  console.log(`PASS: browser ${acro?'Acro':'Regular'} Hills staircase, inside open loop, exit, bowl and finish.`);
+}
 const replay=()=>{wasm._lab_reset(1,1);for(let n=0;n<600;n++)wasm._lab_step(Math.sin(n*.02)*.07,1,0);return Array.from({length:22},(_,i)=>wasm._lab_get(i));};
 assert.deepEqual(replay(),replay());console.log('PASS: exact browser replay.');
