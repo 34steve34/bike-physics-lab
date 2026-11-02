@@ -12,6 +12,10 @@
  */
 #define MAX_BOARDS 1800
 static br_board boards[MAX_BOARDS];
+/* The loop crossover has two physical lanes, like a bridge. The return
+ * passes over the incoming lane; wheels/rider collide only with their lane. */
+enum { ROAD_COMMON, ROAD_ENTRY, ROAD_RETURN };
+static int road[MAX_BOARDS], building_road, loop_entered;
 static int count, track_id, acro_id, rear_grounded, front_grounded, status;
 static br_bike bike;
 static float snapshot[22], elapsed, finish_x, finish_y, spawn_y, last_lean;
@@ -22,7 +26,8 @@ static void segment(float ax, float ay, float bx, float by)
     int n = (int)ceilf(sqrtf(dx*dx + dy*dy) / 0.18f), i;
     if (n < 1) return;
     for (i = 0; i < n && count < MAX_BOARDS; i++) {
-        br_board *b = &boards[count++];
+        br_board *b = &boards[count];
+        road[count++] = building_road;
         float t = (float)i/n, u = (float)(i+1)/n;
         v2_set(&b->v1, ax+dx*t, ay+dy*t);
         v2_set(&b->v2, ax+dx*u, ay+dy*u);
@@ -31,7 +36,7 @@ static void segment(float ax, float ay, float bx, float by)
 
 static void make_track(int track)
 {
-    count = 0; spawn_y = 0.04f; finish_y = -0.3f;
+    count = 0; building_road=ROAD_COMMON; spawn_y = 0.04f; finish_y = -0.3f;
     if (track == 1) {
         segment(-4,0,3,0); segment(3,0,4.8f,0.65f);
         segment(4.8f,0.65f,6.6f,0); segment(6.6f,0,8,0);
@@ -39,16 +44,24 @@ static void make_track(int track)
         segment(12.0f,0.45f,15,0); segment(15,0,28,0);
         finish_x = 24;
     } else if (track == 2) {
-        float x = 5, y = 0, radius = 0.65f;
+        float x = 7, y = 0, radius = 1.8f;
         int i;
         spawn_y = 0.84f;
-        segment(-4,0.8f,1,0.8f); segment(1,0.8f,3,0); segment(3,0,5,0);
-        for (i = 1; i <= 96; i++) {
-            float a = -1.57079632679f + (float)i*6.28318530718f/96;
-            float nx = 5+radius*cosf(a), ny = radius+radius*sinf(a);
+        building_road=ROAD_ENTRY;
+        segment(-4,0.8f,1,0.8f); segment(1,0.8f,3,0); segment(3,0,7,0);
+        building_road=ROAD_COMMON;
+        /* Open spiral: one turn, with its exit 0.8 below its entrance.
+         * Smooth vertical offset preserves horizontal tangents at both ends.
+         * The descending return crosses the approach on a separate lane. */
+        for (i = 1; i <= 180; i++) {
+            float t=(float)i/180, a=t*6.28318530718f;
+            float nx=7+radius*sinf(a);
+            float ny=radius*(1-cosf(a))-0.8f*t*t*(3-2*t);
+            building_road=i>112?ROAD_RETURN:ROAD_COMMON;
             segment(x,y,nx,ny); x=nx; y=ny;
         }
-        segment(5,0,18,0); finish_x = 15;
+        building_road=ROAD_COMMON;
+        segment(7,-0.8f,18,-0.8f); finish_x = 15; finish_y=-1.1f;
     } else if (track == 3) {
         spawn_y = 1.84f;
         segment(-4,1.8f,2,1.8f); segment(2.35f,0,35,0);
@@ -83,7 +96,14 @@ void lab_reset(int track, int acro)
     v2_set(&spawn,0,spawn_y);
     br_bike_init(&bike, acro_id ? BR_BIKE_ACROBATIC : BR_BIKE_REGULAR, &spawn);
     elapsed = last_lean = 0; status = rear_grounded = front_grounded = 0;
+    loop_entered=0;
     update_snapshot();
+}
+
+static int road_active(int i)
+{
+    if(track_id!=2) return 1;
+    return loop_entered ? road[i]!=ROAD_ENTRY : road[i]!=ROAD_RETURN;
 }
 
 void lab_step(float lean, int gas, int brake)
@@ -99,11 +119,16 @@ void lab_step(float lean, int gas, int brake)
     v2_set(&gravity,0,bike.def->gravity_y);
     rear_grounded = front_grounded = 0;
     for (n=0;n<substeps;n++) {
+        /* Rear wheel has cleared the approach and is on the rising inside.
+         * This selects the bridge lane; it never snaps or propels the bike. */
+        if(track_id==2 && !loop_entered && bike.rear.pos.x>7.08f)
+            loop_entered=1;
         br_bike_apply_gravity(&bike,&gravity,dt);
         br_bike_apply_springs(&bike,dt);
         for (i=0;i<count;i++) {
             /* Conservative cull only; retain original track iteration order. */
             const br_board *b = &boards[i];
+            if(!road_active(i)) continue;
             float lo=fminf(b->v1.x,b->v2.x)-0.6f, hi=fmaxf(b->v1.x,b->v2.x)+0.6f;
             if (bike.chassis.com.x < lo || bike.chassis.com.x > hi) continue;
             if (br_bike_collide_rear(&bike,b,dt)>0) rear_grounded=1;
@@ -120,7 +145,7 @@ void lab_step(float lean, int gas, int brake)
         status=3;
     } else {
         for (i=0;i<count;i++) {
-            if (br_bike_head_hits(&bike,&boards[i])) { status=1; break; }
+            if (road_active(i) && br_bike_head_hits(&bike,&boards[i])) { status=1; break; }
         }
         if (bike.head.pos.y < -5 || bike.head.pos.x < -11) status=1;
         if (!status && bike.head.pos.x > finish_x && bike.head.pos.y > finish_y) status=2;
@@ -129,10 +154,14 @@ void lab_step(float lean, int gas, int brake)
     update_snapshot();
 }
 
-float lab_get(int index) { return index>=0 && index<22 ? snapshot[index] : 0; }
+float lab_get(int index) {
+    if(index==22) return (float)loop_entered;
+    return index>=0 && index<22 ? snapshot[index] : 0;
+}
 int lab_board_count(void) { return count; }
 float lab_board_get(int b,int c) {
     if (b<0 || b>=count) return 0;
     switch(c) { case 0:return boards[b].v1.x; case 1:return boards[b].v1.y;
-      case 2:return boards[b].v2.x; case 3:return boards[b].v2.y; default:return 0; }
+      case 2:return boards[b].v2.x; case 3:return boards[b].v2.y;
+      case 4:return (float)road[b]; default:return 0; }
 }
