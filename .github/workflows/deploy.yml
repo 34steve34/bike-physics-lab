@@ -1,0 +1,42 @@
+name: Build, test and publish Bike Lab
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: bike-lab-pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Import prepared prototype source on first build
+        if: ${{ hashFiles('src/lab.c') == '' }}
+        run: |
+          echo "822757fe58067b4514d1514ba25421e257e9d64440761a3d78cc4b6888a967b4  bike-lab-source.zip" | sha256sum -c -
+          unzip -o bike-lab-source.zip
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md LICENSE .gitignore package.json src vendor web tests scripts
+          git commit -m "Import initial browser prototype and pinned C physics"
+          git push
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: '4.0.15'
+          actions-cache-folder: emsdk-cache
+      - name: Check browser code
+        run: npm run check
+      - name: Compile original C, test native and browser physics
+        run: bash scripts/build.sh
+      - name: Publish tested browser files
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          commit_message: 'Publish tested Bike Lab'
