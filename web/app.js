@@ -1,21 +1,24 @@
-import createPhysics from './core.mjs';
+import createPhysics from './core.mjs?v=0.1.2';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.1';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.2';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
 let viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
 let lastStatus=0,toastTimer, settingsBike=0;
+let loopEntered=false,bridgeX=null;
 
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2600);}
-function snapshot(){for(let i=0;i<22;i++)state[i]=core._lab_get(i);}
+function snapshot(){for(let i=0;i<22;i++)state[i]=core._lab_get(i);loopEntered=!!core._lab_get(22);}
 function reset(){
   if(!ready)return;
   core._lab_reset(track,acro);snapshot();
-  boards=Array.from({length:core._lab_board_count()},(_,i)=>Array.from({length:4},(_,j)=>core._lab_board_get(i,j)));
+  boards=Array.from({length:core._lab_board_count()},(_,i)=>Array.from({length:5},(_,j)=>core._lab_board_get(i,j)));
+  const crossing=boards.find(b=>b[4]===2&&b[1]>=0&&b[3]<=0);
+  bridgeX=crossing?crossing[0]+(crossing[2]-crossing[0])*(-crossing[1])/(crossing[3]-crossing[1]):null;
   presentation.reset(state);
   acc=0;last=0;frames=[];replaying=false;lastStatus=0;controls.clear();
   $('#result').classList.add('hidden');
@@ -40,7 +43,7 @@ $('#ride').addEventListener('click',startRide);
 $('#reset').addEventListener('click',()=>{reset();});
 $('#retry').addEventListener('click',()=>{reset();running=true;});
 $('#zero').addEventListener('click',()=>toast(controls.calibrate()?'Neutral tilt set.': 'No motion reading yet. Enable phone tilt in Settings.'));
-$('#track').addEventListener('change',e=>{track=+e.target.value;reset();});
+$('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=track===2?8:5;$('#zoom').value=viewWidth;reset();});
 $('#settings').addEventListener('click',()=>{settingsBike=acro;controls.clear();$('#options').showModal();});
 $('#save-settings').addEventListener('click',()=>$('#options').close());
 $('#options').addEventListener('close',()=>{last=0;controls.clear();if(acro!==settingsBike)reset();});
@@ -106,13 +109,20 @@ function render(alpha){
   ctx.strokeStyle='#ffffff08';ctx.lineWidth=1;
   for(let x=Math.floor(cam.x-viewWidth);x<cam.x+viewWidth;x++){ctx.beginPath();ctx.moveTo(sx(x),50);ctx.lineTo(sx(x),height);ctx.stroke();}
   ctx.lineCap='round';
-  // Each segment is drawn exactly at the geometry used by the C engine.
-  for(const b of boards){
-    if(Math.max(b[0],b[2])<cam.x-viewWidth||Math.min(b[0],b[2])>cam.x+viewWidth)continue;
-    ctx.strokeStyle='#081520';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(sx(b[0]),sy(b[1])+3);ctx.lineTo(sx(b[2]),sy(b[3])+3);ctx.stroke();
-    ctx.strokeStyle='#c6d5ca';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(sx(b[0]),sy(b[1]));ctx.lineTo(sx(b[2]),sy(b[3]));ctx.stroke();
+  // The bridge is drawn in front of a rider in the approach underpass.
+  const isBridge=b=>b[4]===2&&Math.min(b[1],b[3])<.8&&Math.max(b[1],b[3])>-.35;
+  function drawRoad(b){
+    if(Math.max(b[0],b[2])<cam.x-viewWidth||Math.min(b[0],b[2])>cam.x+viewWidth)return;
+    ctx.strokeStyle='#081520';ctx.lineWidth=isBridge(b)?12:7;ctx.beginPath();ctx.moveTo(sx(b[0]),sy(b[1])+3);ctx.lineTo(sx(b[2]),sy(b[3])+3);ctx.stroke();
+    ctx.strokeStyle=isBridge(b)?'#dfedda':'#c6d5ca';ctx.lineWidth=isBridge(b)?5:3;ctx.beginPath();ctx.moveTo(sx(b[0]),sy(b[1]));ctx.lineTo(sx(b[2]),sy(b[3]));ctx.stroke();
   }
-  const fx=sx(state[20]),fy=sy(track===0||track===1||track===2||track===3?0:state[21]);
+  for(const b of boards)drawRoad(b);
+  if(track===2){
+    ctx.fillStyle='#a8bdc7';ctx.font='600 10px system-ui';
+    ctx.fillText('IN →',sx(4.3),sy(.08));ctx.fillText('OUT →',sx(8),sy(-.72));
+    if(bridgeX!==null)ctx.fillText('UNDERPASS',sx(bridgeX-.95),sy(-.25));
+  }
+  const fx=sx(state[20]),fy=sy(track===2?-.8:0);
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
   // A new, simple rider drawing follows the actual three masses.
@@ -141,6 +151,7 @@ function render(alpha){
   ctx.strokeStyle='#f7e9d1';ctx.lineWidth=scale*.014;ctx.stroke();
   line([{x:h.x+u.x*scale*.02,y:h.y+u.y*scale*.02},{x:h.x+u.x*scale*.052,y:h.y+u.y*scale*.052}],'#192736',scale*.02);
   if(showPoints){line([r,h,f,r],'#ffb98a99',1);for(const p of [r,f,h]){ctx.fillStyle='#ff866b';ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}}
+  if(track===2&&!loopEntered)for(const b of boards)if(isBridge(b))drawRoad(b);
   const input=replaying?{lean:state[18],gas:false,brake:false}:controls.read();
   $('#tilt-dot').style.left=`${60+input.lean*112}px`;
   $('#gas-hint').classList.toggle('active',input.gas);$('#brake-hint').classList.toggle('active',input.brake);
@@ -161,7 +172,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.2',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
