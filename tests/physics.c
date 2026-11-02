@@ -82,7 +82,7 @@ static void complete_hills(int acro) {
         if(stage==2 && x>15.3f && x<15.9f && (lab_get(12)||lab_get(13)))exited=1;
         if(x>25.4f && x<27 && y<5.3f && (lab_get(12)||lab_get(13)))bowl=1;
     }
-    assert(lab_get(14)==2 && lab_get(5)>6.73f);
+    assert(lab_get(14)==2 && lab_get(5)>7.03f);
     assert(stairs && ceiling && left_wall && exited && bowl);
     printf("PASS: %s Hills staircase, inside open loop, exit, bowl and finish; %.2fs.\n",acro?"Acro":"Regular",lab_get(15));
 }
