@@ -1,4 +1,5 @@
 #include "lab.h"
+#include "race-rules.h"
 #include "../vendor/bikerace-vita/src/game/bike.h"
 #include <math.h>
 #include <string.h>
@@ -16,9 +17,9 @@ static br_board boards[MAX_BOARDS];
  * passes over the incoming lane; wheels/rider collide only with their lane. */
 enum { ROAD_COMMON, ROAD_ENTRY, ROAD_RETURN };
 static int road[MAX_BOARDS], building_road, loop_entered;
-static int count, track_id, acro_id, rear_grounded, front_grounded, status;
+static int count, track_id, acro_id, rear_grounded, front_grounded, status, race_started;
 static br_bike bike;
-static float snapshot[22], elapsed, finish_x, finish_y, spawn_y, last_lean;
+static float snapshot[22], elapsed, finish_x, finish_ground_y, spawn_y, last_lean;
 
 static void segment(float ax, float ay, float bx, float by)
 {
@@ -38,7 +39,7 @@ static void segment(float ax, float ay, float bx, float by)
 
 static void make_track(int track)
 {
-    count = 0; building_road=ROAD_COMMON; spawn_y = 0.04f; finish_y = -0.3f;
+    count = 0; building_road=ROAD_COMMON; spawn_y = 0.04f; finish_ground_y = 0;
     if (track == 4) {
         make_hills();
     } else if (track == 1) {
@@ -65,7 +66,7 @@ static void make_track(int track)
             segment(x,y,nx,ny); x=nx; y=ny;
         }
         building_road=ROAD_COMMON;
-        segment(7,-0.8f,18,-0.8f); finish_x = 15; finish_y=-1.1f;
+        segment(7,-0.8f,18,-0.8f); finish_x = 15; finish_ground_y=-0.8f;
     } else if (track == 3) {
         spawn_y = 3.64f;
         segment(-4,3.6f,2,3.6f); segment(2.35f,0,35,0);
@@ -88,7 +89,7 @@ static void update_snapshot(void)
     snapshot[14]=(float)status; snapshot[15]=elapsed;
     snapshot[16]=bike.head.pos.x; snapshot[17]=bike.chassis.ang_momentum;
     snapshot[18]=last_lean; snapshot[19]=(float)track_id;
-    snapshot[20]=finish_x; snapshot[21]=finish_y;
+    snapshot[20]=finish_x; snapshot[21]=finish_ground_y;
 }
 
 void lab_reset(int track, int acro)
@@ -100,7 +101,7 @@ void lab_reset(int track, int acro)
     v2_set(&spawn,0,spawn_y);
     br_bike_init(&bike, acro_id ? BR_BIKE_ACROBATIC : BR_BIKE_REGULAR, &spawn);
     elapsed = last_lean = 0; status = rear_grounded = front_grounded = 0;
-    loop_entered=0;
+    loop_entered=race_started=0;
     update_snapshot();
 }
 
@@ -112,17 +113,19 @@ static int road_active(int i)
 
 void lab_step(float lean, int gas, int brake)
 {
-    int i,n; const float frame_dt = 1.0f/60.0f;
+    int i,n,crossed_finish=0; const float frame_dt = 1.0f/60.0f;
     const int substeps = (int)((1.0f/60.0f)/0.003f)+1;
     const float dt = frame_dt/(float)substeps;
     vec2 gravity;
     if (status) return;
+    if (gas || brake) race_started=1;
     if (!isfinite(lean)) lean = 0;
     lean = fmaxf(-0.5f, fminf(0.5f,lean)); last_lean = lean;
     br_bike_set_state(&bike, gas ? BR_BIKE_ACCELERATING : brake ? BR_BIKE_BRAKING : BR_BIKE_IDLE);
     v2_set(&gravity,0,bike.def->gravity_y);
     rear_grounded = front_grounded = 0;
     for (n=0;n<substeps;n++) {
+        float previous_x=bike.head.pos.x, previous_y=bike.head.pos.y;
         /* Rear wheel has cleared the approach and is on the rising inside.
          * This selects the bridge lane; it never snaps or propels the bike. */
         if(track_id==2 && !loop_entered && bike.rear.pos.x>7.08f)
@@ -141,8 +144,11 @@ void lab_step(float lean, int gas, int brake)
         }
         br_bike_step(&bike,dt);
         br_bike_apply_lean(&bike,lean,dt,front_grounded);
+        if (race_started && race_crosses_finish(previous_x,previous_y,
+                bike.head.pos.x,bike.head.pos.y,finish_x,finish_ground_y))
+            crossed_finish=1;
     }
-    elapsed += frame_dt;
+    if (race_started) elapsed += frame_dt;
     if (!isfinite(bike.head.pos.x) || !isfinite(bike.head.pos.y) ||
         !isfinite(bike.front.pos.x) || !isfinite(bike.front.pos.y) ||
         !isfinite(bike.rear.pos.x) || !isfinite(bike.rear.pos.y)) {
@@ -152,7 +158,7 @@ void lab_step(float lean, int gas, int brake)
             if (road_active(i) && br_bike_head_hits(&bike,&boards[i])) { status=1; break; }
         }
         if (bike.head.pos.y < -5 || bike.head.pos.x < -11) status=1;
-        if (!status && bike.head.pos.x > finish_x && bike.head.pos.y > finish_y) status=2;
+        if (!status && crossed_finish) status=2;
     }
     /* Freeze on crash for easy inspection; no artificial crash physics. */
     update_snapshot();

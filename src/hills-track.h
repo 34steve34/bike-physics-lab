@@ -5,7 +5,7 @@
  * and long camera-ambiguous straight lengths are estimates. No game assets.
  * Existing segment() controls subdivision; no changes to bike forces. */
 static void make_hills(void) {
-    spawn_y=4.86f; finish_x=32.38f; finish_y=6.73f;
+    spawn_y=4.86f; finish_x=32.38f; finish_ground_y=7.03f;
     /* Starting flat and steep launch */
     segment(-2.000000f,4.820000f,1.200000f,4.820000f);
     segment(1.200000f,4.820000f,1.301675f,4.823186f);
