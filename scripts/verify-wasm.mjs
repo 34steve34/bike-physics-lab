@@ -58,6 +58,22 @@ assert.equal(row,trace.length);
 console.log('Loop native/Wasm maximum differences by snapshot field:',JSON.stringify(loopWorst));
 assert.equal(mismatches.length,0,mismatches.slice(0,20).join('\n'));
 console.log(`PASS: ${row} native C / WebAssembly snapshots; worst absolute difference ${worst}.`);
+// The bigger drop must leave the platform, land on the floor and stay rideable.
+for(const acro of [0,1]){
+  wasm._lab_reset(3,acro);
+  assert(wasm._lab_get(1)>3.7&&wasm._lab_get(3)>3.7,'raised drop spawn');
+  let airborne=false,landed=false;
+  for(let n=0;n<900&&!wasm._lab_get(14);n++){
+    wasm._lab_step(0,1,0);
+    for(let i=0;i<22;i++)assert(Number.isFinite(wasm._lab_get(i)));
+    airborne ||= wasm._lab_get(0)>2.1&&!wasm._lab_get(12)&&!wasm._lab_get(13);
+    if(airborne&&(wasm._lab_get(12)||wasm._lab_get(13))){
+      assert(wasm._lab_get(1)<.3||wasm._lab_get(3)<.3,'landing is on the lower floor');landed=true;
+    }
+  }
+  assert(airborne&&landed);assert.equal(wasm._lab_get(14),2,'drop finishes');
+  console.log(`PASS: browser ${acro?'Acro':'Regular'} larger drop and flat landing.`);
+}
 // Complete input replay must produce exactly the same browser state twice.
 const replay=()=>{wasm._lab_reset(1,1);for(let n=0;n<600;n++)wasm._lab_step(Math.sin(n*.02)*.07,1,0);return Array.from({length:22},(_,i)=>wasm._lab_get(i));};
 assert.deepEqual(replay(),replay());console.log('PASS: exact browser replay.');
