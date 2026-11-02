@@ -35,22 +35,22 @@ int main(void)
     for(t=0;t<5;t++)for(a=0;a<2;a++) {
         float flag,ground;
         lab_reset(t,a);flag=finish_x;ground=finish_ground_y;
-        assert(!race_crosses_finish(flag-.1f,ground,flag+.1f,ground,flag,ground));
-        assert(!race_crosses_finish(flag-.1f,ground-.2f,flag+.1f,ground+.1f,flag,ground));
-        assert(race_crosses_finish(flag-.1f,ground+.2f,flag+.1f,ground-.1f,flag,ground));
-        assert(!race_crosses_finish(flag+.1f,ground+.2f,flag-.1f,ground+.2f,flag,ground));
-        assert(!race_crosses_finish(flag+.1f,ground-.2f,flag+.2f,ground+.2f,flag,ground));
+        assert(!race_has_finished(flag+.1f,ground,flag,ground));
+        assert(!race_has_finished(flag+.1f,ground-.2f,flag,ground));
+        assert(!race_has_finished(flag,ground+.2f,flag,ground));
+        assert(!race_has_finished(flag-.1f,ground+.2f,flag,ground));
+        assert(race_has_finished(flag+.1f,ground+.2f,flag,ground));
         /* A front wheel beyond the flag does not finish the race. */
         place_upper(flag-.12f,ground+.6f,0);race_started=1;
         assert(bike.front.pos.x>flag);lab_step(0,0,0);assert(status==0);
         lab_reset(t,a);place_upper(flag-.03f,ground-.15f,4);race_started=1;
         lab_step(0,0,0);assert(bike.head.pos.x>flag && status==0);
-        /* Rising after a below-ground pass must not award a late finish. */
-        place_upper(flag+.1f,ground+.6f,4);lab_step(0,0,0);assert(status==0);
+        /* Rising after a below-ground pass is a valid finish. */
+        place_upper(flag+.1f,ground+.6f,4);lab_step(0,0,0);assert(status==2);
         lab_reset(t,a);place_upper(flag-.03f,ground+.6f,4);race_started=1;
         lab_step(0,0,0);assert(bike.head.pos.x>flag && status==2);
         { float final_time=elapsed; lab_step(0,1,0);assert(elapsed==final_time); }
     }
-    puts("PASS: idle/tilt clock, first gas or brake, release, reset; upper-point finish above ground on all five courses and both bikes.");
+    puts("PASS: first-input clock; head right and above ground, including passing below then rising, on all five courses and both bikes.");
     return 0;
 }
