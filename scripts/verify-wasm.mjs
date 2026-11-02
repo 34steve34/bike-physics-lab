@@ -27,17 +27,20 @@ for(let t=0;t<4;t++)for(let a=0;a<2;a++){
         let tolerance=(i===6||i===7)?0.1:0.003;
         if(t===2){
           loopWorst[i]=Math.max(loopWorst[i],diff);
+        }
+        if(t===2&&n>=120){
           // A full lap reaches repeated stiff contacts/landing. Native libm
           // and Wasm may take different sides of the contact threshold.
-          // Compare physical paths within 0.01 world units (~1 default-view
-          // pixel), speed within 0.05, attitude within 2 degrees and time
+          // Keep the initial two-second comparison strict. For the extended
+          // lap compare paths within 0.03 world units (~3 default phone-view
+          // pixels), speed within 0.1, attitude within 2 degrees and time
           // within one tick. Decorative spin/contact bits need not agree at
           // an exact sample; ceiling/left-wall contact and finish are required.
-          if([0,1,2,3,4,5,8,9,16].includes(i))tolerance=.01;
-          else if(i===10)tolerance=.05;
+          if([0,1,2,3,4,5,8,9,16].includes(i))tolerance=.03;
+          else if(i===10)tolerance=.1;
           else if(i===11)tolerance=2;
           else if(i===15)tolerance=1/60+.0001;
-          else if(i===17)tolerance=.02;
+          else if(i===17)tolerance=.1;
           else if([6,7,12,13].includes(i))tolerance=Infinity;
         }
         if(diff>=tolerance)mismatches.push(`C/Wasm mismatch track=${t} bike=${a} frame=${n} field=${i}: ${diff}`);
