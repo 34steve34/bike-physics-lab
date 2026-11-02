@@ -63,8 +63,8 @@ static void make_track(int track)
         building_road=ROAD_COMMON;
         segment(7,-0.8f,18,-0.8f); finish_x = 15; finish_y=-1.1f;
     } else if (track == 3) {
-        spawn_y = 1.84f;
-        segment(-4,1.8f,2,1.8f); segment(2.35f,0,35,0);
+        spawn_y = 3.64f;
+        segment(-4,3.6f,2,3.6f); segment(2.35f,0,35,0);
         finish_x = 30;
     } else {
         segment(-12,0,75,0); finish_x = 60;
