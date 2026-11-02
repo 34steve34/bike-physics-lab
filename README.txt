@@ -38,11 +38,31 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Loop course (v0.1.2)
+
+The loop is an open spiral with a nominal radius of 1.8, increased from 0.65.
+Its exit is 0.8 units below its entrance, leaving room for the rider. The return
+crosses the approach as a bridge: the rider uses the underpass on approach and
+the upper lane during the lap. Collision selection follows that lane, without
+altering gravity, velocity, lean, springs or bike position. The foreground bridge
+occludes an approaching rider so the crossing is visible.
+
+Both Regular and Acro are tested from spawn with gas held and neutral tilt.
+Passing requires an approach under the bridge, inverted wheel contact on the
+ceiling, wheel contact on the left wall, a full turn, and a finish on the lower
+exit. The same run is checked in native C and WebAssembly. Crashing does not
+count as completing the loop.
+
+Both bikes retain upstream gravity of -4 game units per second squared. There
+is no separate microgravity mode or added track-attraction force. The upstream
+wheel-contact spring/damping response is retained.
+
 ## Build and verification
 
 GitHub Actions uses pinned Emscripten 4.0.15 to compile the C core to WebAssembly.
 It runs native C rest/drive/control/stability checks and compares native and Wasm
 snapshots for eight track/bike combinations, plus exact replay checks.
+Loop comparisons cover a complete ride through the entrance, ceiling and exit.
 Only passing builds are pushed to `gh-pages`.
 
 Locally, with Emscripten, a C99 compiler and Node installed:
