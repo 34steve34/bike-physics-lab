@@ -1,11 +1,11 @@
-import createPhysics from './core.mjs?v=0.1.3';
+import createPhysics from './core.mjs?v=0.1.4';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.3';
+import {drawBike} from './bike-drawing.js?v=0.1.4';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.3';
-const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop'];
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.4';
+const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
 let viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
@@ -44,7 +44,7 @@ $('#ride').addEventListener('click',startRide);
 $('#reset').addEventListener('click',()=>{reset();});
 $('#retry').addEventListener('click',()=>{reset();running=true;});
 $('#zero').addEventListener('click',()=>toast(controls.calibrate()?'Neutral tilt set.': 'No motion reading yet. Enable phone tilt in Settings.'));
-$('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=(track===2||track===3)?8:5;$('#zoom').value=viewWidth;reset();});
+$('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=track>=2?8:5;$('#zoom').value=viewWidth;reset();});
 $('#settings').addEventListener('click',()=>{settingsBike=acro;controls.clear();$('#options').showModal();});
 $('#save-settings').addEventListener('click',()=>$('#options').close());
 $('#options').addEventListener('close',()=>{last=0;controls.clear();if(acro!==settingsBike)reset();});
@@ -123,7 +123,7 @@ function render(alpha){
     ctx.fillText('IN →',sx(4.3),sy(.08));ctx.fillText('OUT →',sx(8),sy(-.72));
     if(bridgeX!==null)ctx.fillText('UNDERPASS',sx(bridgeX-.95),sy(-.25));
   }
-  const fx=sx(state[20]),fy=sy(track===2?-.8:0);
+  const fx=sx(state[20]),fy=sy(state[21]+.3);
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
   drawBike(ctx,pose,sx,sy,scale,showPoints);
@@ -148,7 +148,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.3',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.4',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';

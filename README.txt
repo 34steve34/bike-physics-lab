@@ -30,13 +30,30 @@ The C core comes from Francisco Lourenço's MIT-licensed
 commit `a697be26244cddfb294f147055b7ea0eb5c04fc6` (v1.1).
 The imported equations and bike constants are unmodified. See [provenance](vendor/UPSTREAM.md).
 This is a test of that reconstruction, not a claim of exact fidelity to the
-original Android game. This project includes no original game art, audio or tracks.
+original Android game. This project includes no original game art or audio. Hills / video is an
+approximate numeric track reconstruction from a user-supplied recording.
 The new track geometry, renderer, browser input and adapter are separate.
 
 Reference ticks run at 60 Hz, each subdivided into six steps below 3 ms, retaining
 the upstream physics phase order and its front-contact lean gate. Display refresh
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
+
+## Video reconstruction (v0.1.4)
+
+Select **Hills / video** for the first full course reconstructed from a recorded
+run: steep launch, twenty descending steps, valley, open three-quarter loop,
+second launch, landing platform, bowl and final jump. The loop has a genuine
+lower-right opening; all its boards use the same ordinary collision rules.
+There is no lane switch on this course. The short unseen start and long straight
+lengths obscured by camera motion are estimates, so this is a playable first
+pass rather than an exact map export. The reference recording is not published.
+
+Physics constants and equations are unchanged. Native C and browser Wasm both
+verify a scripted full ride, including inverted inside-loop contact, the left
+wall, loop exit, bowl contact and finish. The script supplies gas and tilt only;
+there is no assistance in ordinary play. Use tilt to settle the staircase and
+prepare for landings. The finish flag now uses each course's actual height.
 
 ## Body drawing and larger drop (v0.1.3)
 
@@ -73,7 +90,7 @@ wheel-contact spring/damping response is retained.
 
 GitHub Actions uses pinned Emscripten 4.0.15 to compile the C core to WebAssembly.
 It runs native C rest/drive/control/stability checks and compares native and Wasm
-snapshots for eight track/bike combinations, plus exact replay checks.
+snapshots for ten track/bike combinations, plus exact replay checks.
 Loop comparisons cover a complete ride through the entrance, ceiling and exit.
 Only passing builds are pushed to `gh-pages`.
 
