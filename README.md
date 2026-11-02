@@ -38,6 +38,18 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Body drawing and larger drop (v0.1.3)
+
+The frame and rider now follow the upper physics mass, while wheel hubs remain
+at their own masses. This reveals suspension movement that the former drawing
+hid. The visible helmet sits above the actual upper crash point; enable the
+three-point overlay to inspect it. Spring, damping, gravity and controls are
+unchanged.
+
+Air drop now has a 3.6-unit platform, twice the previous height, with a long flat
+landing and a wider default view. This creates a stronger landing for evaluating
+suspension and one-wheel impacts.
+
 ## Loop course (v0.1.2)
 
 The loop is an open spiral with a nominal radius of 1.8, increased from 0.65.
