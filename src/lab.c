@@ -113,7 +113,7 @@ static int road_active(int i)
 
 void lab_step(float lean, int gas, int brake)
 {
-    int i,n,crossed_finish=0; const float frame_dt = 1.0f/60.0f;
+    int i,n; const float frame_dt = 1.0f/60.0f;
     const int substeps = (int)((1.0f/60.0f)/0.003f)+1;
     const float dt = frame_dt/(float)substeps;
     vec2 gravity;
@@ -125,7 +125,6 @@ void lab_step(float lean, int gas, int brake)
     v2_set(&gravity,0,bike.def->gravity_y);
     rear_grounded = front_grounded = 0;
     for (n=0;n<substeps;n++) {
-        float previous_x=bike.head.pos.x, previous_y=bike.head.pos.y;
         /* Rear wheel has cleared the approach and is on the rising inside.
          * This selects the bridge lane; it never snaps or propels the bike. */
         if(track_id==2 && !loop_entered && bike.rear.pos.x>7.08f)
@@ -144,9 +143,6 @@ void lab_step(float lean, int gas, int brake)
         }
         br_bike_step(&bike,dt);
         br_bike_apply_lean(&bike,lean,dt,front_grounded);
-        if (race_started && race_crosses_finish(previous_x,previous_y,
-                bike.head.pos.x,bike.head.pos.y,finish_x,finish_ground_y))
-            crossed_finish=1;
     }
     if (race_started) elapsed += frame_dt;
     if (!isfinite(bike.head.pos.x) || !isfinite(bike.head.pos.y) ||
@@ -158,7 +154,8 @@ void lab_step(float lean, int gas, int brake)
             if (road_active(i) && br_bike_head_hits(&bike,&boards[i])) { status=1; break; }
         }
         if (bike.head.pos.y < -5 || bike.head.pos.x < -11) status=1;
-        if (!status && crossed_finish) status=2;
+        if (!status && race_started && race_has_finished(bike.head.pos.x,
+                bike.head.pos.y,finish_x,finish_ground_y)) status=2;
     }
     /* Freeze on crash for easy inspection; no artificial crash physics. */
     update_snapshot();
