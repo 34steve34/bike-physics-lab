@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#101b27">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bike Lab">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+  <title>Bike Physics Lab</title>
+</head>
+<body>
+  <main id="game">
+    <canvas id="view" aria-label="Bike riding test track"></canvas>
+    <header id="toolbar">
+      <div class="brand"><span class="brand-mark">↗</span><strong>BIKE LAB</strong><small id="version">0.1.0</small></div>
+      <select id="track" aria-label="Test track"><option value="0">Flat / wheelies</option><option value="1">Ramps / jumps</option><option value="2">Loop</option><option value="3">Air drop</option></select>
+      <button id="reset" title="Restart this track (R)">Restart</button>
+      <button id="zero" title="Set neutral phone tilt">Zero tilt</button>
+      <button id="settings" aria-label="Open settings">Settings</button>
+    </header>
+    <aside id="telemetry"><span id="speed">0.0</span><small>speed</small><span class="divider"></span><span id="timer">0.00</span><small>sec</small><span id="sensor" class="sensor">Tilt waiting</span></aside>
+    <div id="input-meter" aria-label="Tilt input"><i></i><b id="tilt-dot"></b></div>
+    <div id="drive-hints"><span id="brake-hint">◀ BRAKE <small>hold left</small></span><span id="gas-hint"><small>hold right</small> GAS ▶</span></div>
+    <section id="welcome" class="shade">
+      <div class="card">
+        <p class="eyebrow">FIRST RIDE · PHYSICS PROTOTYPE</p>
+        <h1>Find the balance.</h1>
+        <p>Hold your phone sideways,<br>charging port on your <strong>right</strong>.</p>
+        <div class="instructions"><span><b>LEFT</b> brake</span><span><b>TILT</b> lean</span><span><b>RIGHT</b> gas</span></div>
+        <button id="ride" class="primary" disabled>Loading physics…</button>
+        <p id="loading-note" class="fine">Getting the bike ready.</p>
+        <p class="fine desktop">Keyboard: ↑ / Space gas · ↓ brake · ← / → lean · R restart</p>
+      </div>
+    </section>
+    <section id="result" class="shade hidden">
+      <div class="card compact"><p class="eyebrow" id="result-tag">TRY AGAIN</p><h2 id="result-title">One more ride?</h2><p id="result-detail"></p><div class="actions"><button id="retry" class="primary">Ride again</button><button id="replay">Replay</button></div><button id="download" class="link-button">Save run for feedback</button></div>
+    </section>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="options">
+      <form method="dialog"><div class="dialog-heading"><h2>Ride settings</h2><button aria-label="Close settings">✕</button></div></form>
+      <label>Bike <select id="bike"><option value="0">Regular</option><option value="1">Acro</option></select></label>
+      <label>Full lean at <select id="sensitivity"><option value="0.70710678">45° · gentle</option><option value="0.5" selected>30° · reference</option><option value="0.30901699">18° · sensitive</option></select></label>
+      <label class="check"><input type="checkbox" id="invert"> Reverse tilt direction</label>
+      <label>View width <input type="range" id="zoom" min="3.5" max="7" step="0.25" value="5"></label>
+      <label class="check"><input type="checkbox" id="show-points"> Show the three physics points</label>
+      <button id="enable-tilt">Enable phone tilt</button>
+      <button id="save-settings" class="primary">Done</button>
+      <p class="fine">Start with reference sensitivity. Changing bike restarts the track. These controls change input and view only.</p>
+      <details><summary>About this prototype</summary><p class="fine">C physics from Francisco Lourenço’s Bike Race Vita reconstruction, compiled to WebAssembly. New tracks and drawings. No original game assets. This is a handling test, not an official Bike Race release.</p><p class="fine"><a href="https://github.com/34steve34/bike-physics-lab" target="_blank" rel="noopener">Source & credits</a> · <a href="./LICENSE.txt" target="_blank">MIT license</a></p></details>
+    </dialog>
+    <div id="portrait"><span>↻</span><h2>Turn your phone sideways</h2><p>Charging port on your right.</p></div>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
