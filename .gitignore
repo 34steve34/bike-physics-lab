@@ -2,3 +2,7 @@ build/
 dist/
 node_modules/
 *.log
+.tools/
+diagnostics.mjs
+preview.png
+release-*.png
