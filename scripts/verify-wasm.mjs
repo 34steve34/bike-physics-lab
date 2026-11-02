@@ -106,9 +106,20 @@ for(const acro of [0,1]){
     exited ||= stage===2&&x>15.3&&x<15.9&&!!(get(12)||get(13));
     bowl ||= x>25.4&&x<27&&y<5.3&&!!(get(12)||get(13));
   }
-  assert.equal(get(14),2,'Hills finishes');assert(get(5)>6.73,'finish height');
+  assert.equal(get(14),2,'Hills finishes');assert(get(5)>get(21),'finish above ground');
   assert(stairs&&ceiling&&leftWall&&exited&&bowl,JSON.stringify({stairs,ceiling,leftWall,exited,bowl}));
   console.log(`PASS: browser ${acro?'Acro':'Regular'} Hills staircase, inside open loop, exit, bowl and finish.`);
 }
 const replay=()=>{wasm._lab_reset(1,1);for(let n=0;n<600;n++)wasm._lab_step(Math.sin(n*.02)*.07,1,0);return Array.from({length:22},(_,i)=>wasm._lab_get(i));};
 assert.deepEqual(replay(),replay());console.log('PASS: exact browser replay.');
+for(const acro of [0,1])for(const first of ['gas','brake']){
+  wasm._lab_reset(0,acro);
+  for(let n=0;n<600;n++)wasm._lab_step(0,0,0);
+  assert.equal(wasm._lab_get(15),0,'waiting does not count');
+  wasm._lab_step(.01,0,0);assert.equal(wasm._lab_get(15),0,'tilt does not start clock');
+  wasm._lab_step(0,+(first==='gas'),+(first==='brake'));
+  assert(Math.abs(wasm._lab_get(15)-1/60)<1e-6,first+' starts clock');
+  wasm._lab_step(0,0,0);assert(Math.abs(wasm._lab_get(15)-2/60)<1e-6,'release keeps timing');
+  wasm._lab_reset(0,acro);assert.equal(wasm._lab_get(15),0,'restart clears clock');
+}
+console.log('PASS: browser clock waits for first gas/brake, keeps running on release, resets to zero.');

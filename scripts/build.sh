@@ -17,5 +17,7 @@ printf '{"version":"%s","commit":"%s","upstream":"a697be26244cddfb294f147055b7ea
 touch dist/.nojekyll
 cc "${SOURCES[@]}" tests/physics.c -std=c99 -O2 -ffp-contract=off -fno-fast-math -lm -o build/physics-test
 ./build/physics-test
+cc "${SOURCES[@]:1}" tests/race-rules.c -std=c99 -O2 -ffp-contract=off -fno-fast-math -lm -o build/race-rules-test
+./build/race-rules-test
 ./build/physics-test --trace > build/native-trace.json
 node scripts/verify-wasm.mjs
