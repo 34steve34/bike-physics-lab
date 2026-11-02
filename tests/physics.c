@@ -50,11 +50,47 @@ static void complete_drop(int acro) {
     assert(airborne && landed && lab_get(14)==2);
     printf("PASS: %s larger drop, flat landing and finish; %.2fs.\n",acro?"Acro":"Regular",lab_get(15));
 }
+/* Test-only feedback supplies ordinary tilt and gas, never moves the bike. */
+static void complete_hills(int acro) {
+    int n,stage=0,ceiling=0,left_wall=0,exited=0,bowl=0,stairs=0;
+    lab_reset(4,acro);
+    assert(lab_get(19)==4 && lab_board_count()>400);
+    for(n=0;n<1200 && !lab_get(14);n++) {
+        float x=lab_get(8),y=lab_get(9),target=0,angle,error,input;
+        if(!stage && x>14.3f && y>3.6f)stage=1;
+        if(stage==1 && x<14.5f && y<3.7f)stage=2;
+        if(x<1.4f)target=0;
+        else if(x<3.1f)target=fminf(1.22f,(x-1.4f)*1.3f);
+        else if(x<11.3f)target=-0.785398163f;
+        else if(stage==0)target=x<12.9f?0:x<14.85f?fminf(1.02f,(x-12.9f)*1.2f):1.5f;
+        else if(stage==1)target=atan2f(y-4.15f,x-14.35f)+1.570796327f;
+        else if(x<15.8f)target=0;
+        else if(x<18.4f)target=fminf(1.03f,(x-15.8f)*1.2f);
+        else if(x<23.4f)target=0;
+        else if(x<25.3f)target=-.63f;
+        else if(x<26.5f)target=0;
+        else if(x<27.9f)target=.8f;
+        angle=atan2f(lab_get(3)-lab_get(1),lab_get(2)-lab_get(0));
+        error=target-angle;error=atan2f(sinf(error),cosf(error));
+        input=.16f*error/(acro?1.5f:1);
+        lab_step(input,1,0); finite_state();
+        x=lab_get(8);y=lab_get(9);
+        if(x>4 && x<11 && (lab_get(12)||lab_get(13)))stairs=1;
+        if(x>14 && x<14.7f && lab_get(1)>4.8f && lab_get(3)>4.8f &&
+           lab_get(5)<lab_get(1) && lab_get(5)<lab_get(3) && lab_get(12) && lab_get(13))ceiling=1;
+        if(stage==1 && x<13.85f && lab_get(12) && lab_get(13))left_wall=1;
+        if(stage==2 && x>15.3f && x<15.9f && (lab_get(12)||lab_get(13)))exited=1;
+        if(x>25.4f && x<27 && y<5.3f && (lab_get(12)||lab_get(13)))bowl=1;
+    }
+    assert(lab_get(14)==2 && lab_get(5)>6.73f);
+    assert(stairs && ceiling && left_wall && exited && bowl);
+    printf("PASS: %s Hills staircase, inside open loop, exit, bowl and finish; %.2fs.\n",acro?"Acro":"Regular",lab_get(15));
+}
 int main(int argc,char **argv) {
     int t,a,n,i,gas,brake; float lean, first[22];
     if(argc>1 && !strcmp(argv[1],"--trace")) {
         int comma=0;printf("[");
-        for(t=0;t<4;t++)for(a=0;a<2;a++) {
+        for(t=0;t<5;t++)for(a=0;a<2;a++) {
             lab_reset(t,a);
             for(n=0;n<(t==2?360:120);n++) {
                 scenario(n,&lean,&gas,&brake);
@@ -82,13 +118,14 @@ int main(int argc,char **argv) {
     assert(lab_get(14)==0);assert(fabsf(lab_get(11))<12);
     /* Long, varied runs across both bikes and every original test track. */
     complete_loop(0);complete_loop(1);complete_drop(0);complete_drop(1);
-    for(t=0;t<4;t++)for(a=0;a<2;a++)for(i=0;i<3;i++) {
+    complete_hills(0);complete_hills(1);
+    for(t=0;t<5;t++)for(a=0;a<2;a++)for(i=0;i<3;i++) {
         lab_reset(t,a);
         for(n=0;n<2700;n++){
             lean=i==0?0:(i==1?0.08f*sinf(n*0.02f):0.5f*sinf(n*0.05f));
             lab_step(lean,n%240<180,n%240>=180);finite_state();
         }
     }
-    puts("PASS: rest, drive, repeatability, grounded forward lean, 24 long-run scenarios.");
+    puts("PASS: rest, drive, repeatability, grounded forward lean, 30 long-run scenarios.");
     return 0;
 }
