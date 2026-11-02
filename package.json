@@ -1,0 +1,1 @@
+{"name":"bike-physics-lab","version":"0.1.0","private":true,"type":"module","scripts":{"check":"node --check web/app.js && node --check web/input.js && node --check scripts/verify-wasm.mjs","serve":"node scripts/serve.mjs"}}
