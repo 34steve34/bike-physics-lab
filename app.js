@@ -1,10 +1,10 @@
-import createPhysics from './core.mjs?v=0.1.4';
+import createPhysics from './core.mjs?v=0.1.5';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.4';
+import {drawBike} from './bike-drawing.js?v=0.1.5';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.4';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.5';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
@@ -76,7 +76,7 @@ function finish(status){
   if(!replaying)saved={version:VERSION,upstream:'a697be26244cddfb294f147055b7ea0eb5c04fc6',track,acro,physicsHz:60,frames:frames.slice(),final:Array.from(state),input:{sensitivity:controls.sensitivity,invert:controls.invert},userAgent:navigator.userAgent};
   $('#result-tag').textContent=replaying?'REPLAY COMPLETE':status===2?'TRACK COMPLETE':'TRY AGAIN';
   $('#result-title').textContent=status===2?'Nice ride.':status===3?'Physics stopped.':'One more ride?';
-  $('#result-detail').textContent=status===3?'A non-finite state was detected. Save this run for debugging.':`${trackNames[track]} · ${acro?'Acro':'Regular'} · ${state[15].toFixed(2)} seconds`;
+  $('#result-detail').textContent=status===3?'A non-finite state was detected. Save this run for debugging.':`${trackNames[track]} · ${acro?'Acro':'Regular'}${status===2?` · ${state[15].toFixed(2)} seconds`:''}`;
   $('#result').classList.remove('hidden');controls.clear();
 }
 
@@ -123,7 +123,7 @@ function render(alpha){
     ctx.fillText('IN →',sx(4.3),sy(.08));ctx.fillText('OUT →',sx(8),sy(-.72));
     if(bridgeX!==null)ctx.fillText('UNDERPASS',sx(bridgeX-.95),sy(-.25));
   }
-  const fx=sx(state[20]),fy=sy(state[21]+.3);
+  const fx=sx(state[20]),fy=sy(state[21]);
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
   drawBike(ctx,pose,sx,sy,scale,showPoints);
@@ -148,7 +148,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.4',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.5',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
