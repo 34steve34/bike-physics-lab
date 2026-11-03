@@ -9,3 +9,5 @@
 @keyframes best-confetti{0%{opacity:0;transform:translate(0,0) rotate(0)}12%{opacity:1}75%{opacity:1}100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 180px)) rotate(var(--r))}}
 @keyframes best-pop{0%{transform:scale(.92);box-shadow:0 0 0 0 #d9f78d55}60%{transform:scale(1.025);box-shadow:0 0 0 18px #d9f78d00}100%{transform:scale(1);box-shadow:0 22px 100px #0005}}
 @media(prefers-reduced-motion:reduce){#celebration i,.new-best .card{animation:none}}
+
+#times-list li{display:flex;align-items:center;justify-content:space-between;gap:18px}#times-list button{min-height:32px;padding:5px 12px;font-size:12px}

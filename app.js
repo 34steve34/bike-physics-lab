@@ -1,11 +1,11 @@
-import createPhysics from './core.mjs?v=0.1.12';
+import createPhysics from './core.mjs?v=0.1.13';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike,drawCrash} from './bike-drawing.js?v=0.1.12';
-import {createTimes} from './records.js?v=0.1.12';
+import {drawBike,drawCrash} from './bike-drawing.js?v=0.1.13';
+import {createTimes} from './records.js?v=0.1.13';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.12';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.13';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
 const mapIds=['flat-v1','ramps-v1','spiral-v2','drop-v2','hills-v2'];
 const times=createTimes(()=>window.localStorage);
@@ -23,9 +23,15 @@ function showTimes(){
   const fastest=times.list(mapIds[track],acro?'acro':'regular');
   $('#best').textContent=fastest.length?fastest[0].toFixed(2):'—';
   $('#times-course').textContent=`${trackNames[track]} · ${acro?'Acro':'Regular'}`;
-  $('#times-list').replaceChildren(...fastest.map(seconds=>{const item=document.createElement('li');item.textContent=`${seconds.toFixed(2)} sec`;return item;}));
+  $('#times-list').replaceChildren(...times.entries(mapIds[track],acro?'acro':'regular').map((entry,rank)=>{
+    const item=document.createElement('li'),label=document.createElement('span'),button=document.createElement('button');
+    label.textContent=`${entry.seconds.toFixed(2)} sec`;button.textContent='Replay';button.disabled=!entry.hasReplay;
+    button.setAttribute('aria-label',`Replay rank ${rank+1}, ${entry.seconds.toFixed(2)} seconds`);
+    button.addEventListener('click',()=>{const run=times.replay(mapIds[track],acro?'acro':'regular',rank);if(run){$('#records').close();playRecording(run);}});
+    item.append(label,button);return item;
+  }));
   $('#times-empty').hidden=fastest.length>0;
-  $('#times-note').textContent=times.persistent?'Saved on this browser. Each map and bike has its own times.':'Browser storage unavailable. Times last for this visit only.';
+  $('#times-note').textContent=times.persistent?'Times and recordings saved on this browser. Each map and bike has its own list.':'Browser storage unavailable. Times last for this visit only.';
 }
 function reset(){
   if(!ready)return;
@@ -76,13 +82,14 @@ document.addEventListener('visibilitychange',()=>{last=0;controls.clear();});
 window.addEventListener('blur',()=>{
   if(running&&!state[14]&&!$('#options').open&&!$('#records').open){running=false;$('#ride').textContent='Resume ride';$('#loading-note').textContent='Your ride is paused.';$('#welcome').classList.remove('hidden');}
 });
-$('#replay').addEventListener('click',()=>{
-  if(!saved)return;
-  const recording=saved;
+function playRecording(recording){
   track=recording.track;acro=recording.acro;
   $('#track').value=track;$('#bike').value=acro;
-  reset();saved=recording;replaying=true;replayIndex=0;running=true;toast('Replaying the recorded controls');
-});
+  viewWidth=track>=2?8:5;$('#zoom').value=viewWidth;
+  reset();saved=recording;replaying=true;replayIndex=0;running=true;
+  toast('Replaying the recorded controls');
+}
+$('#replay').addEventListener('click',()=>{if(saved)playRecording(saved);});
 $('#download').addEventListener('click',()=>{
   if(!saved)return;
   const url=URL.createObjectURL(new Blob([JSON.stringify(saved)],{type:'application/json'}));
@@ -90,10 +97,10 @@ $('#download').addEventListener('click',()=>{
 });
 
 function finish(status){
-  const record=times.record(mapIds[track],acro?'acro':'regular',state[15],status,replaying);
+  if(!replaying)saved={version:VERSION,upstream:'a697be26244cddfb294f147055b7ea0eb5c04fc6',track,acro,physicsHz:60,frames:frames.slice(),final:Array.from(state),input:{sensitivity:controls.sensitivity,invert:controls.invert},userAgent:navigator.userAgent};
+  const record=times.record(mapIds[track],acro?'acro':'regular',state[15],status,replaying,saved);
   showTimes();
   $('#result-record').textContent=record?`${record.newBest?'New best! · ':''}Best ${record.times[0].toFixed(2)} sec${record.persistent?'':' · saved for this visit only'}`:'';
-  if(!replaying)saved={version:VERSION,upstream:'a697be26244cddfb294f147055b7ea0eb5c04fc6',track,acro,physicsHz:60,frames:frames.slice(),final:Array.from(state),input:{sensitivity:controls.sensitivity,invert:controls.invert},userAgent:navigator.userAgent};
   const newBest=!!record?.newBest;
   $('#result').classList.toggle('new-best',newBest);
   $('#celebration').replaceChildren();
@@ -192,7 +199,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.12',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.13',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
