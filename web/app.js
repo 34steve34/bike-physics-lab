@@ -1,11 +1,14 @@
-import createPhysics from './core.mjs?v=0.1.8';
+import createPhysics from './core.mjs?v=0.1.9';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.8';
+import {drawBike} from './bike-drawing.js?v=0.1.9';
+import {createTimes} from './records.js?v=0.1.9';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.8';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.9';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
+const mapIds=['flat-v1','ramps-v1','spiral-v2','drop-v2','hills-v1'];
+const times=createTimes(()=>window.localStorage);
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
 let viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
@@ -14,6 +17,14 @@ let loopEntered=false,bridgeX=null;
 
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2600);}
 function snapshot(){for(let i=0;i<22;i++)state[i]=core._lab_get(i);loopEntered=!!core._lab_get(22);}
+function showTimes(){
+  const fastest=times.list(mapIds[track],acro?'acro':'regular');
+  $('#best').textContent=fastest.length?fastest[0].toFixed(2):'—';
+  $('#times-course').textContent=`${trackNames[track]} · ${acro?'Acro':'Regular'}`;
+  $('#times-list').replaceChildren(...fastest.map(seconds=>{const item=document.createElement('li');item.textContent=`${seconds.toFixed(2)} sec`;return item;}));
+  $('#times-empty').hidden=fastest.length>0;
+  $('#times-note').textContent=times.persistent?'Saved on this browser. Each map and bike has its own times.':'Browser storage unavailable. Times last for this visit only.';
+}
 function reset(){
   if(!ready)return;
   core._lab_reset(track,acro);snapshot();
@@ -23,6 +34,7 @@ function reset(){
   presentation.reset(state);
   acc=0;last=0;frames=[];replaying=false;lastStatus=0;controls.clear();
   $('#result').classList.add('hidden');
+  showTimes();
 }
 function resize(){width=innerWidth;height=innerHeight;dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);}
 window.addEventListener('resize',resize);resize();
@@ -46,6 +58,8 @@ $('#retry').addEventListener('click',()=>{reset();running=true;});
 $('#zero').addEventListener('click',()=>toast(controls.calibrate()?'Neutral tilt set.': 'No motion reading yet. Enable phone tilt in Settings.'));
 $('#track').addEventListener('change',e=>{track=+e.target.value;viewWidth=track>=2?8:5;$('#zoom').value=viewWidth;reset();});
 $('#settings').addEventListener('click',()=>{settingsBike=acro;controls.clear();$('#options').showModal();});
+$('#times').addEventListener('click',()=>{showTimes();controls.clear();$('#records').showModal();});
+$('#records').addEventListener('close',()=>{last=0;controls.clear();});
 $('#save-settings').addEventListener('click',()=>$('#options').close());
 $('#options').addEventListener('close',()=>{last=0;controls.clear();if(acro!==settingsBike)reset();});
 $('#bike').addEventListener('change',e=>{acro=+e.target.value;});
@@ -54,10 +68,10 @@ $('#invert').addEventListener('change',e=>controls.invert=e.target.checked);
 $('#zoom').addEventListener('input',e=>viewWidth=+e.target.value);
 $('#show-points').addEventListener('change',e=>showPoints=e.target.checked);
 $('#enable-tilt').addEventListener('click',async()=>{const ok=await controls.enable();toast(ok?'Tilt enabled. Hold neutral and tap Zero tilt.':'Motion access unavailable or denied. Check browser permissions.');});
-window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'&&!$('#options').open)reset();});
+window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r'&&!$('#options').open&&!$('#records').open)reset();});
 document.addEventListener('visibilitychange',()=>{last=0;controls.clear();});
 window.addEventListener('blur',()=>{
-  if(running&&!state[14]&&!$('#options').open){running=false;$('#ride').textContent='Resume ride';$('#loading-note').textContent='Your ride is paused.';$('#welcome').classList.remove('hidden');}
+  if(running&&!state[14]&&!$('#options').open&&!$('#records').open){running=false;$('#ride').textContent='Resume ride';$('#loading-note').textContent='Your ride is paused.';$('#welcome').classList.remove('hidden');}
 });
 $('#replay').addEventListener('click',()=>{
   if(!saved)return;
@@ -73,6 +87,9 @@ $('#download').addEventListener('click',()=>{
 });
 
 function finish(status){
+  const record=times.record(mapIds[track],acro?'acro':'regular',state[15],status,replaying);
+  showTimes();
+  $('#result-record').textContent=record?`${record.newBest?'New best! · ':''}Best ${record.times[0].toFixed(2)} sec${record.persistent?'':' · saved for this visit only'}`:'';
   if(!replaying)saved={version:VERSION,upstream:'a697be26244cddfb294f147055b7ea0eb5c04fc6',track,acro,physicsHz:60,frames:frames.slice(),final:Array.from(state),input:{sensitivity:controls.sensitivity,invert:controls.invert},userAgent:navigator.userAgent};
   $('#result-tag').textContent=replaying?'REPLAY COMPLETE':status===2?'TRACK COMPLETE':'TRY AGAIN';
   $('#result-title').textContent=status===2?'Nice ride.':status===3?'Physics stopped.':'One more ride?';
@@ -149,7 +166,7 @@ function render(alpha){
 }
 function frame(now){
   const dt=last?Math.min((now-last)/1000,0.05):0;last=now;
-  if(ready&&running&&!$('#options').open&&!document.hidden&&!state[14]){
+  if(ready&&running&&!$('#options').open&&!$('#records').open&&!document.hidden&&!state[14]){
     acc+=dt;let n=0;while(acc>=1/60&&n++<4){tick();acc-=1/60;if(state[14])break;}
   }
   // On pause keep the last fractional pose rather than snapping backwards.
@@ -159,7 +176,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.8',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.9',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
