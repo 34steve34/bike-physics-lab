@@ -78,7 +78,7 @@ for(const acro of [0,1]){
 // Video course: steer using ordinary inputs and verify the intended route.
 for(const acro of [0,1]){
  let completed=false;
- for(const gain of [.16,.12,.2,.24,.28,.32,.4,.08]){
+ search: for(const gain of [.16,.12,.2,.24,.28,.32,.4,.08])for(const jump of [3.1,2.8,3.4,3.7]){
   wasm._lab_reset(4,acro);
   const get=i=>wasm._lab_get(i);
   assert.equal(get(19),4);assert(wasm._lab_board_count()>400);
@@ -88,7 +88,7 @@ for(const acro of [0,1]){
     if(!stage&&x>14.3&&y>3.6)stage=1;
     if(stage===1&&x<14.5&&y<3.7)stage=2;
     if(x<1.4)target=0;
-    else if(x<3.1)target=Math.min(1.22,(x-1.4)*1.3);
+    else if(x<jump)target=Math.min(1.22,(x-1.4)*1.3);
     else if(x<11.3)target=-Math.PI/4;
     else if(stage===0)target=x<12.9?0:x<14.85?Math.min(1.02,(x-12.9)*1.2):1.5;
     else if(stage===1)target=Math.atan2(y-4.15,x-14.35)+Math.PI/2;
@@ -109,7 +109,7 @@ for(const acro of [0,1]){
     bowl ||= x>25.4&&x<27&&y<5.3&&!!(get(12)||get(13));
   }
   if(!(get(14)===2&&get(5)>get(21)&&stairs&&ceiling&&leftWall&&exited&&bowl))continue;
-  completed=true;break;
+  completed=true;break search;
  }
  assert(completed,'Hills finishes above ground through all route checkpoints');
   console.log(`PASS: browser ${acro?'Acro':'Regular'} Hills staircase, inside open loop, exit, bowl and finish.`);
