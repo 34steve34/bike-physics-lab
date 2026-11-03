@@ -48,23 +48,25 @@ static void gentler_drive(int acro)
 {
     int i,j;
     const br_bike_def *original=br_bike_def_for(acro?BR_BIKE_ACROBATIC:BR_BIKE_REGULAR);
+    br_bike_def previous=*original;
+    previous.drive*=.95f;previous.drive_cap*=.95f;
     for(j=0;j<2;j++) {
         int ticks=j?240:20;
         float original_x,original_speed;
-        lab_reset(0,acro);bike.def=original;
+        lab_reset(0,acro);bike.def=&previous;
         for(i=0;i<ticks;i++)lab_step(0,1,0);
         original_x=lab_get(0);original_speed=lab_get(10);
         lab_reset(0,acro);
         assert(bike.def!=original);
         assert(original->drive==16 && original->drive_cap==44);
-        assert(fabsf(bike.def->drive/original->drive-.95f)<1e-6f);
-        assert(fabsf(bike.def->drive_cap/original->drive_cap-.95f)<1e-6f);
+        assert(fabsf(bike.def->drive/original->drive-.855f)<1e-6f);
+        assert(fabsf(bike.def->drive_cap/original->drive_cap-.855f)<1e-6f);
         for(i=0;i<ticks;i++)lab_step(0,1,0);
         assert(lab_get(14)==0 && lab_get(0)<original_x && lab_get(10)<original_speed);
     }
     for(i=0;i<5;i++)lab_reset(0,acro);
-    assert(fabsf(bike.def->drive/original->drive-.95f)<1e-6f);
-    printf("PASS: %s 5%% gentler early acceleration and sustained pull; restarts do not compound tuning.\n",acro?"Acro":"Regular");
+    assert(fabsf(bike.def->drive/original->drive-.855f)<1e-6f);
+    printf("PASS: %s another 10%% gentler early acceleration and sustained pull; restarts do not compound tuning.\n",acro?"Acro":"Regular");
 }
 
 int main(void)
