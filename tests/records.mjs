@@ -42,6 +42,6 @@ test('consecutive writers preserve other maps and corrupted times are filtered',
   const disk=storage(),a=createTimes(()=>disk),b=createTimes(()=>disk);
   a.record('one','regular',4,2);b.record('two','regular',5,2);a.record('one','regular',3,2);
   assert.deepEqual(b.list('one','regular'),[3,4]);assert.deepEqual(b.list('two','regular'),[5]);
-  disk.setItem('bike-lab-fast-times-v1',JSON.stringify({'["standard-drive095-v1","one","regular"]':[0,-2,null,300,300,120,1.4,'90']}));
+  disk.setItem('bike-lab-fast-times-v1',JSON.stringify({'["standard-drive0855-v1","one","regular"]':[0,-2,null,300,300,120,1.4,'90']}));
   assert.deepEqual(a.list('one','regular'),[2,5]);
 });
