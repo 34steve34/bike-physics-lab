@@ -83,3 +83,22 @@ test('storage failure retains replay during visit and does not throw',()=>{
  assert.equal(a.record('hills-v2','regular',1,2,false,run(1)).persistent,false);
  assert.deepEqual(a.replay('hills-v2','regular',0),run(1));
 });
+
+test('Acro retuning preserves Regular recordings and leaves old Acro records separate',()=>{
+ const disk=storage(),a=createTimes(()=>disk),original=run(2);
+ a.record('hills-v2','regular',2,2,false,original);
+ const oldId=JSON.stringify(['drive0855-lean090-110-v1','hills-v2','acro']);
+ const data=JSON.parse(disk.getItem('bike-lab-fast-times-v1'));
+ const oldAcro={...Object.values(data)[0][0].run,acro:1};
+ data[oldId]=[{ticks:120,run:oldAcro}];
+ disk.setItem('bike-lab-fast-times-v1',JSON.stringify(data));
+ const b=createTimes(()=>disk);
+ assert.deepEqual(b.replay('hills-v2','regular',0),original);
+ assert.deepEqual(b.list('hills-v2','acro'),[]);
+ assert.equal(b.replay('hills-v2','acro',0),null);
+ b.record('hills-v2','acro',3,2,false,run(3,4,1));
+ const c=createTimes(()=>disk);
+ assert.deepEqual(c.replay('hills-v2','acro',0),run(3,4,1));
+ assert.deepEqual(c.replay('hills-v2','regular',0),original);
+ assert.deepEqual(JSON.parse(disk.getItem('bike-lab-fast-times-v1'))[oldId],data[oldId]);
+});
