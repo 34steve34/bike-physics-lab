@@ -5,7 +5,8 @@
 #include <math.h>
 #include <string.h>
 
-/* Browser adapter. Vendor equations and constants are unmodified.
+/* Browser adapter. Vendor source equations are unmodified; ride tuning
+ * uses a private bike-definition copy below.
  * Simulation order follows upstream game.c at a 60 Hz reference cadence:
  * gravity -> springs -> rear/front/head contacts -> integrate -> lean.
  * Each reference tick is split into six equal substeps (< 3 ms).
@@ -20,6 +21,7 @@ enum { ROAD_COMMON, ROAD_ENTRY, ROAD_RETURN };
 static int road[MAX_BOARDS], building_road, loop_entered;
 static int count, track_id, acro_id, rear_grounded, front_grounded, status, race_started;
 static br_bike bike;
+static br_bike_def ride_def;
 static float snapshot[22], elapsed, finish_x, finish_ground_y, spawn_y, last_lean;
 
 static void segment(float ax, float ay, float bx, float by)
@@ -101,6 +103,12 @@ void lab_reset(int track, int acro)
     make_track(track_id);
     v2_set(&spawn,0,spawn_y);
     br_bike_init(&bike, acro_id ? BR_BIKE_ACROBATIC : BR_BIKE_REGULAR, &spawn);
+    /* A fresh copy on every reset keeps upstream data intact and prevents
+     * repeated restarts from multiplying the feel adjustment again. */
+    ride_def=*bike.def;
+    ride_def.drive*=0.95f;
+    ride_def.drive_cap*=0.95f;
+    bike.def=&ride_def;
     elapsed = last_lean = 0; status = rear_grounded = front_grounded = 0;
     loop_entered=race_started=0;
     update_snapshot();
