@@ -40,6 +40,17 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Crash dissolve and personal-best celebration (v0.1.12)
+
+The app opens on Hills / video with its eight-unit view.
+
+A crash freezes the C simulation, briefly separates/fades the existing bike
+drawing over 0.65 seconds, then shows Retry. Restart skips the effect. A new
+fastest live finish gets a small confetti burst and a highlighted result card;
+replays, ties and slower finishes do not celebrate. Reduced-motion preference
+shows results immediately without these animations. Physics, timing, crash
+rules and saved records are unchanged.
+
 ## Longer vertical Hills entry (v0.1.11)
 
 The bend below the Hills loop now reaches vertical sooner, followed by 0.85
