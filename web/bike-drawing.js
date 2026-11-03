@@ -41,3 +41,22 @@ export function drawBike(ctx,pose,sx,sy,scale,showPoints){
     for(const q of [p.rear,p.front,p.upper]){ctx.fillStyle='#ff866b';ctx.beginPath();ctx.arc(q.x,q.y,3,0,Math.PI*2);ctx.fill();}
   }
 }
+
+// A short visual dissolve only: terminal physics positions stay frozen.
+export function drawCrash(ctx,pose,sx,sy,scale,progress){
+  const p=Math.max(0,Math.min(1,progress));
+  if(p>=1)return;
+  const points=bikeGeometry(pose);
+  const xs=[points.rear,points.front,points.helmet].map(q=>sx(q.x));
+  const ys=[points.rear,points.front,points.helmet].map(q=>sy(q.y));
+  const left=Math.min(...xs)-scale*.15,top=Math.min(...ys)-scale*.15;
+  const w=Math.max(...xs)-left+scale*.15,h=Math.max(...ys)-top+scale*.15;
+  for(let i=0;i<12;i++){
+    ctx.save();ctx.globalAlpha=(1-p)*(1-p*.35);
+    ctx.translate(Math.sin(i*2.4)*scale*.13*p,scale*(.18*p*p-Math.cos(i*1.7)*.08*p));
+    ctx.beginPath();ctx.rect(left+w*i/12,top,w/12+.5,h);ctx.clip();
+    drawBike(ctx,pose,sx,sy,scale,false);ctx.restore();
+  }
+  ctx.save();ctx.globalAlpha=Math.max(0,1-p*2);ctx.strokeStyle='#ffb48e';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(sx(pose[4]),sy(pose[5]),scale*(.04+p*.2),0,Math.PI*2);ctx.stroke();ctx.restore();
+}
