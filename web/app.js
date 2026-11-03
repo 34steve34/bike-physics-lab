@@ -1,19 +1,21 @@
-import createPhysics from './core.mjs?v=0.1.11';
+import createPhysics from './core.mjs?v=0.1.12';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.11';
-import {createTimes} from './records.js?v=0.1.11';
+import {drawBike,drawCrash} from './bike-drawing.js?v=0.1.12';
+import {createTimes} from './records.js?v=0.1.12';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.11';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.12';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
 const mapIds=['flat-v1','ramps-v1','spiral-v2','drop-v2','hills-v2'];
 const times=createTimes(()=>window.localStorage);
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
-let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
-let viewWidth=5, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
+let track=4, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
+let viewWidth=8, showPoints=false, frames=[], saved=null,replaying=false,replayIndex=0;
 let lastStatus=0,toastTimer, settingsBike=0;
 let loopEntered=false,bridgeX=null;
+let crashFade=null;
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
 
 function toast(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').classList.remove('visible'),2600);}
 function snapshot(){for(let i=0;i<22;i++)state[i]=core._lab_get(i);loopEntered=!!core._lab_get(22);}
@@ -33,6 +35,7 @@ function reset(){
   bridgeX=crossing?crossing[0]+(crossing[2]-crossing[0])*(-crossing[1])/(crossing[3]-crossing[1]):null;
   presentation.reset(state);
   acc=0;last=0;frames=[];replaying=false;lastStatus=0;controls.clear();
+  crashFade=null;$('#result').classList.remove('new-best');$('#celebration').replaceChildren();
   $('#result').classList.add('hidden');
   showTimes();
 }
@@ -91,10 +94,18 @@ function finish(status){
   showTimes();
   $('#result-record').textContent=record?`${record.newBest?'New best! · ':''}Best ${record.times[0].toFixed(2)} sec${record.persistent?'':' · saved for this visit only'}`:'';
   if(!replaying)saved={version:VERSION,upstream:'a697be26244cddfb294f147055b7ea0eb5c04fc6',track,acro,physicsHz:60,frames:frames.slice(),final:Array.from(state),input:{sensitivity:controls.sensitivity,invert:controls.invert},userAgent:navigator.userAgent};
-  $('#result-tag').textContent=replaying?'REPLAY COMPLETE':status===2?'TRACK COMPLETE':'TRY AGAIN';
-  $('#result-title').textContent=status===2?'Nice ride.':status===3?'Physics stopped.':'One more ride?';
+  const newBest=!!record?.newBest;
+  $('#result').classList.toggle('new-best',newBest);
+  $('#celebration').replaceChildren();
+  if(newBest&&!reducedMotion.matches){
+    for(let i=0;i<22;i++){const bit=document.createElement('i');bit.style.setProperty('--x',`${Math.sin(i*2.4)*(110+i*7)}px`);bit.style.setProperty('--y',`${-90-(i%6)*24}px`);bit.style.setProperty('--r',`${i*73}deg`);bit.style.setProperty('--delay',`${i%4*20}ms`);bit.style.background=['#d9f78d','#f1b383','#d5f1ef'][i%3];$('#celebration').append(bit);}
+  }
+  $('#result-tag').textContent=newBest?'PERSONAL BEST':replaying?'REPLAY COMPLETE':status===2?'TRACK COMPLETE':'TRY AGAIN';
+  $('#result-title').textContent=newBest?'New best!':status===2?'Nice ride.':status===3?'Physics stopped.':'One more ride?';
   $('#result-detail').textContent=status===3?'A non-finite state was detected. Save this run for debugging.':`${trackNames[track]} · ${acro?'Acro':'Regular'}${status===2?` · ${state[15].toFixed(2)} seconds`:''}`;
-  $('#result').classList.remove('hidden');controls.clear();
+  controls.clear();
+  if(status===1&&!reducedMotion.matches){crashFade={elapsed:0};}
+  else $('#result').classList.remove('hidden');
 }
 
 function tick(){
@@ -154,7 +165,8 @@ function render(alpha){
   const fx=sx(state[20]),fy=sy(state[21]);
   ctx.strokeStyle='#d9f78d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(fx,fy);ctx.lineTo(fx,fy-scale*.8);ctx.stroke();
   ctx.fillStyle='#d9f78d';ctx.beginPath();ctx.moveTo(fx,fy-scale*.8);ctx.lineTo(fx+scale*.25,fy-scale*.7);ctx.lineTo(fx,fy-scale*.6);ctx.fill();
-  drawBike(ctx,pose,sx,sy,scale,showPoints);
+  if(crashFade)drawCrash(ctx,pose,sx,sy,scale,crashFade.elapsed/.65);
+  else drawBike(ctx,pose,sx,sy,scale,showPoints);
   if(track===2&&!loopEntered)for(const b of boards)if(isBridge(b))drawRoad(b);
   const input=replaying?{lean:state[18],gas:false,brake:false}:controls.read();
   $('#tilt-dot').style.left=`${60+input.lean*112}px`;
@@ -169,6 +181,10 @@ function frame(now){
   if(ready&&running&&!$('#options').open&&!$('#records').open&&!document.hidden&&!state[14]){
     acc+=dt;let n=0;while(acc>=1/60&&n++<4){tick();acc-=1/60;if(state[14])break;}
   }
+  if(crashFade&&!document.hidden&&!$('#options').open&&!$('#records').open){
+    crashFade.elapsed+=dt;
+    if(crashFade.elapsed>=.65)$('#result').classList.remove('hidden');
+  }
   // On pause keep the last fractional pose rather than snapping backwards.
   // Terminal states show the final snapshot immediately beneath the result.
   render(state[14]?1:acc*60);requestAnimationFrame(frame);
@@ -176,7 +192,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.11',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.12',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
