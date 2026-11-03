@@ -40,6 +40,13 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Acro refinement (v0.1.14)
+
+Acro lean response is 1.0, halfway between its previous 1.1 and Regular's 0.9.
+Regular and its saved times/recordings are unchanged. Acro uses a new record
+group so its old runs are not replayed with different physics; the old group
+remains stored. Engine, suspension, tracks and crash rules are unchanged.
+
 ## Agility tuning and retained best runs (v0.1.13)
 
 Regular lean response is now 0.9, ten percent below the previous Regular.
