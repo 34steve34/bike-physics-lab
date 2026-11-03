@@ -20,17 +20,44 @@ int main(void)
 {
     int t,a,n;
     const float tick=1.0f/60;
+    for(a=0;a<2;a++) {
+        float neutral[22];int i;
+        lab_reset(0,a);for(i=0;i<120;i++)lab_step(0,0,0);
+        for(i=0;i<22;i++)neutral[i]=lab_get(i);
+        lab_reset(0,a);for(i=0;i<120;i++)lab_step(i%2?.5f:-.5f,0,0);
+        for(i=0;i<22;i++)assert(lab_get(i)==neutral[i]);
+        /* A horizontal board crosses both upper-to-wheel connections,
+         * while every mass remains outside its contact radius. */
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(-.12f,.44f,.105f,.44f);
+        lab_step(0,0,0);assert(status==0 && !rear_grounded && !front_grounded);
+        /* Crossing the wheel-to-wheel connection adds no collision. */
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(0,.18f,0,.52f);
+        lab_step(0,0,0);assert(status==0 && !rear_grounded && !front_grounded);
+        /* The upper point still crashes and both wheels still contact. */
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(-.15f,.56f,.15f,.56f);lab_step(0,0,0);assert(status==1);
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(.14f,.2f,.2f,.2f);lab_step(0,0,0);
+        assert(status==0 && front_grounded && !rear_grounded);
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(-.23f,.2f,-.17f,.2f);lab_step(0,0,0);
+        assert(status==0 && rear_grounded && !front_grounded);
+    }
     for(a=0;a<2;a++)for(n=0;n<2;n++) {
         int i;
         lab_reset(0,a);
         for(i=0;i<600;i++)lab_step(0,0,0);
         assert(elapsed==0 && race_started==0 && status==0);
         /* Tilt alone does not start the clock. */
-        lab_step(.01f,0,0);assert(elapsed==0 && !race_started);
-        lab_step(0,n==0,n==1);
+        lab_step(.5f,0,0);assert(elapsed==0 && !race_started && last_lean==0);
+        lab_step(.2f,n==0,n==1);
         assert(race_started && fabsf(elapsed-tick)<1e-6f);
+        assert(last_lean==.2f && fabsf(lab_get(17))>1e-5f);
         lab_step(0,0,0);assert(fabsf(elapsed-2*tick)<1e-6f);
-        lab_reset(0,a);assert(elapsed==0 && !race_started);
+        lab_reset(0,a);lab_step(.5f,0,0);
+        assert(elapsed==0 && !race_started && last_lean==0);
     }
     for(t=0;t<5;t++)for(a=0;a<2;a++) {
         float flag,ground;
@@ -52,5 +79,6 @@ int main(void)
         { float final_time=elapsed; lab_step(0,1,0);assert(elapsed==final_time); }
     }
     puts("PASS: first-input clock; head right and above ground, including passing below then rising, on all five courses and both bikes.");
+    puts("PASS: connecting lines pass through terrain; upper point crashes, wheel points contact; lean locked until first gas/brake, and relocked on reset.");
     return 0;
 }
