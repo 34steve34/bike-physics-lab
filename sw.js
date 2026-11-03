@@ -1,5 +1,5 @@
-const CACHE='bike-physics-lab-4b95ad245db392f549e67054cf3751598d2db60c';
-const ASSETS=['./','./index.html','./style.css','./app.js?v=0.1.6','./input.js','./presentation.js','./bike-drawing.js?v=0.1.6','./core.mjs?v=0.1.6','./core.wasm?v=0.1.6','./manifest.webmanifest','./icon.svg','./LICENSE.txt'];
+const CACHE='bike-physics-lab-b2e513fecc47b3829871ce7df0cdb77308ea3400';
+const ASSETS=['./','./index.html','./style.css','./app.js?v=0.1.7','./input.js','./presentation.js','./bike-drawing.js?v=0.1.7','./core.mjs?v=0.1.7','./core.wasm?v=0.1.7','./manifest.webmanifest','./icon.svg','./LICENSE.txt'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('bike-physics-lab-')&&k!==CACHE).map(k=>caches.delete(k))))));
 self.addEventListener('fetch',e=>{

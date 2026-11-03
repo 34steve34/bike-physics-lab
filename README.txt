@@ -39,11 +39,28 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Point contacts and start lock (v0.1.7)
+
+The two wheels and upper physics mass define three contact points with their
+existing contact radii. Terrain may cross their connecting lines and pass
+through the visible artwork without causing a crash. The browser adapter now
+uses only proximity to the upper point for rider crashes, removing the imported
+core's additional upper-to-wheel edge intersection tests. Wheel contact forces,
+springs, damping and the upper-point kill distance remain unchanged. Imported
+vendor files remain byte-for-byte copies; this rule lives in the adapter.
+
+Before the first gas or brake press, lean is ignored and the clock stays at
+zero. The first press enables lean and timing together; Restart relocks both.
+Native tests cover lines crossing the bike between masses, upper-point crashes,
+separate wheel contacts, hard front-wheel-first impacts that crash through
+upper-point contact, the start lock and first gas/brake activation. Browser
+tests compare pre-start full lean in either direction against a neutral pose.
+
 ## Race clock and finish (v0.1.6)
 
 The race clock stays at zero until the first gas or brake input. Releasing both
 controls keeps the clock running; Restart clears it. Tilt alone does not start
-it. Waiting still allows the physical bike to settle.
+it or move the bike. Waiting still allows the physical bike to settle.
 
 A race finishes when the upper physics point is both right of the flag and
 above the finish ground. Either condition may become true first: passing below
