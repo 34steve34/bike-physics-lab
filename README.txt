@@ -28,7 +28,8 @@ Crash/finish freezes the bike. **Replay** reruns the recorded control inputs.
 The C core comes from Francisco Lourenço's MIT-licensed
 [Bike Race Vita reconstruction](https://github.com/franciscoclou/bikerace-vita),
 commit `a697be26244cddfb294f147055b7ea0eb5c04fc6` (v1.1).
-The imported equations and bike constants are unmodified. See [provenance](vendor/UPSTREAM.md).
+The imported source files and equations are unmodified. Adapter tuning is
+described below. See [provenance](vendor/UPSTREAM.md).
 This is a test of that reconstruction, not a claim of exact fidelity to the
 original Android game. This project includes no original game art or audio. Hills / video is an
 approximate numeric track reconstruction from a user-supplied recording.
@@ -38,6 +39,21 @@ Reference ticks run at 60 Hz, each subdivided into six steps below 3 ms, retaini
 the upstream physics phase order and its front-contact lean gate. Display refresh
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
+
+## Gentler drive and clearer scenery (v0.1.8)
+
+Regular and Acro now use 95% of the previous low-speed drive and high-speed
+power settings: drive 16 becomes 15.2, and drive cap 44 becomes 41.8. These are
+applied to a fresh private definition on every restart; vendor data remains
+unchanged. Drive cap tapers acceleration at higher wheel speeds, rather than
+clamping the bike to a fixed maximum speed. This is a small reduction in engine
+pull, not a guarantee of exactly 5% lower speed in every situation. Native
+checks compare early acceleration and sustained flat-ground pull with the
+original settings and verify the reduction does not compound on restart.
+
+The background has a brighter sky and two clearly separated ridges. The nearer
+ridge moves four times faster than the distant one. Ridge points are anchored
+to world positions, so crossing a repeat boundary does not change their shape.
 
 ## Point contacts and start lock (v0.1.7)
 

@@ -1,10 +1,10 @@
-import createPhysics from './core.mjs?v=0.1.7';
+import createPhysics from './core.mjs?v=0.1.8';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.7';
+import {drawBike} from './bike-drawing.js?v=0.1.8';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.7';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.8';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
@@ -97,16 +97,27 @@ function tick(){
 
 function render(alpha){
   ctx.setTransform(dpr,0,0,dpr,0,0);
-  const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#142638');sky.addColorStop(1,'#263a46');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
+  const sky=ctx.createLinearGradient(0,0,0,height);sky.addColorStop(0,'#293f58');sky.addColorStop(1,'#648596');ctx.fillStyle=sky;ctx.fillRect(0,0,width,height);
   if(!ready)return;
   const pose=presentation.sample(alpha), cam=presentation.camera;
   const scale=width/viewWidth, anchorY=height*0.61;
   const sx=x=>(x-cam.x)*scale+width*0.43;
   const sy=y=>anchorY-(y-cam.y)*scale;
-  // Quiet parallax silhouettes leave the track and bike easy to judge.
-  ctx.fillStyle='#1b2f3c';ctx.beginPath();ctx.moveTo(0,height);
-  for(let i=-1;i<=12;i++){const x=i*width/10-(cam.x*12)%(width/10);ctx.lineTo(x,height*.56+Math.sin(i*2.1)*height*.08);}
-  ctx.lineTo(width,height);ctx.fill();
+  // World-anchored ridge samples keep the silhouette continuous as the
+  // camera crosses a repeat boundary. Near terrain moves four times faster.
+  function ridge(color,level,amplitude,spacing,factor,phase){
+    const travel=cam.x*scale*factor,first=Math.floor(travel/spacing)-1;
+    const rise=Math.max(-height*.12,Math.min(height*.12,cam.y*scale*factor*.25));
+    ctx.fillStyle=color;ctx.beginPath();ctx.moveTo(0,height);
+    for(let i=first;i<=first+Math.ceil(width/spacing)+2;i++){
+      const x=i*spacing-travel;
+      const peak=.55+.28*Math.sin(i*1.71+phase)+.17*Math.sin(i*2.83+phase*.7);
+      ctx.lineTo(x,height*level+rise-height*amplitude*peak);
+    }
+    ctx.lineTo(width,height);ctx.closePath();ctx.fill();
+  }
+  ridge('#2d4c66',.57,.18,width*.19,.025,.4);
+  ridge('#71939c',.78,.16,width*.12,.1,2.2);
   ctx.strokeStyle='#ffffff08';ctx.lineWidth=1;
   for(let x=Math.floor(cam.x-viewWidth);x<cam.x+viewWidth;x++){ctx.beginPath();ctx.moveTo(sx(x),50);ctx.lineTo(sx(x),height);ctx.stroke();}
   ctx.lineCap='round';
@@ -148,7 +159,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.7',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.8',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';
