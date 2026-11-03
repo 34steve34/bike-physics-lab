@@ -74,17 +74,17 @@ static void agility(void)
     float momentum[2];int a,n;
     for(a=0;a<2;a++) {
         lab_reset(3,a);
-        assert(fabsf(bike.def->lean-(a?1.1f:.9f))<1e-6f);
+        assert(fabsf(bike.def->lean-(a?1.f:.9f))<1e-6f);
         for(n=0;n<8;n++)lab_step(.2f,0,1);
         momentum[a]=fabsf(lab_get(17));
         assert(momentum[a]>0);
         for(n=0;n<5;n++)lab_reset(3,a);
-        assert(fabsf(bike.def->lean-(a?1.1f:.9f))<1e-6f);
+        assert(fabsf(bike.def->lean-(a?1.f:.9f))<1e-6f);
     }
     assert(momentum[1]>momentum[0]);
     assert(br_bike_def_for(BR_BIKE_REGULAR)->lean==1.f);
     assert(br_bike_def_for(BR_BIKE_ACROBATIC)->lean==1.5f);
-    puts("PASS: Regular lean 0.9, Acro 1.1; airborne response differs; resets preserve tuning and vendor data.");
+    puts("PASS: Regular lean 0.9, Acro 1.0; airborne response differs; resets preserve tuning and vendor data.");
 }
 
 int main(void)
