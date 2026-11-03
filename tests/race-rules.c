@@ -44,10 +44,34 @@ static void hard_one_wheel(int acro)
     printf("PASS: %s hard front-wheel-first landing can crash via upper-point contact.\n",acro?"Acro":"Regular");
 }
 
+static void gentler_drive(int acro)
+{
+    int i,j;
+    const br_bike_def *original=br_bike_def_for(acro?BR_BIKE_ACROBATIC:BR_BIKE_REGULAR);
+    for(j=0;j<2;j++) {
+        int ticks=j?240:20;
+        float original_x,original_speed;
+        lab_reset(0,acro);bike.def=original;
+        for(i=0;i<ticks;i++)lab_step(0,1,0);
+        original_x=lab_get(0);original_speed=lab_get(10);
+        lab_reset(0,acro);
+        assert(bike.def!=original);
+        assert(original->drive==16 && original->drive_cap==44);
+        assert(fabsf(bike.def->drive/original->drive-.95f)<1e-6f);
+        assert(fabsf(bike.def->drive_cap/original->drive_cap-.95f)<1e-6f);
+        for(i=0;i<ticks;i++)lab_step(0,1,0);
+        assert(lab_get(14)==0 && lab_get(0)<original_x && lab_get(10)<original_speed);
+    }
+    for(i=0;i<5;i++)lab_reset(0,acro);
+    assert(fabsf(bike.def->drive/original->drive-.95f)<1e-6f);
+    printf("PASS: %s 5%% gentler early acceleration and sustained pull; restarts do not compound tuning.\n",acro?"Acro":"Regular");
+}
+
 int main(void)
 {
     int t,a,n;
     const float tick=1.0f/60;
+    gentler_drive(0);gentler_drive(1);
     hard_one_wheel(0);hard_one_wheel(1);
     for(a=0;a<2;a++) {
         float neutral[22];int i;
