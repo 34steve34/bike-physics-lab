@@ -108,6 +108,7 @@ void lab_reset(int track, int acro)
     ride_def=*bike.def;
     ride_def.drive*=0.855f;
     ride_def.drive_cap*=0.855f;
+    ride_def.lean=br_bike_def_for(BR_BIKE_REGULAR)->lean*(acro_id?1.1f:.9f);
     bike.def=&ride_def;
     elapsed = last_lean = 0; status = rear_grounded = front_grounded = 0;
     loop_entered=race_started=0;
