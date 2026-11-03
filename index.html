@@ -8,20 +8,21 @@
   <meta name="apple-mobile-web-app-title" content="Bike Lab">
   <link rel="manifest" href="./manifest.webmanifest">
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="./style.css?v=0.1.8">
+  <link rel="stylesheet" href="./style.css?v=0.1.9">
   <title>Bike Physics Lab</title>
 </head>
 <body>
   <main id="game">
     <canvas id="view" aria-label="Bike riding test track"></canvas>
     <header id="toolbar">
-      <div class="brand"><span class="brand-mark">↗</span><strong>BIKE LAB</strong><small id="version">0.1.8</small></div>
+      <div class="brand"><span class="brand-mark">↗</span><strong>BIKE LAB</strong><small id="version">0.1.9</small></div>
       <select id="track" aria-label="Test track"><option value="0">Flat / wheelies</option><option value="1">Ramps / jumps</option><option value="2">Loop</option><option value="3">Air drop</option><option value="4">Hills / video</option></select>
       <button id="reset" title="Restart this track (R)">Restart</button>
       <button id="zero" title="Set neutral phone tilt">Zero tilt</button>
+      <button id="times" aria-label="Fast times for this map">Times</button>
       <button id="settings" aria-label="Open settings">Settings</button>
     </header>
-    <aside id="telemetry"><span id="speed">0.0</span><small>speed</small><span class="divider"></span><span id="timer">0.00</span><small>sec</small><span id="sensor" class="sensor">Tilt waiting</span></aside>
+    <aside id="telemetry"><span id="speed">0.0</span><small>speed</small><span class="divider"></span><span id="timer">0.00</span><small>sec</small><span class="divider"></span><small>best</small><span id="best">—</span><span id="sensor" class="sensor">Tilt waiting</span></aside>
     <div id="input-meter" aria-label="Tilt input"><i></i><b id="tilt-dot"></b></div>
     <div id="drive-hints"><span id="brake-hint">◀ BRAKE <small>hold left</small></span><span id="gas-hint"><small>hold right</small> GAS ▶</span></div>
     <section id="welcome" class="shade">
@@ -36,9 +37,16 @@
       </div>
     </section>
     <section id="result" class="shade hidden">
-      <div class="card compact"><p class="eyebrow" id="result-tag">TRY AGAIN</p><h2 id="result-title">One more ride?</h2><p id="result-detail"></p><div class="actions"><button id="retry" class="primary">Ride again</button><button id="replay">Replay</button></div><button id="download" class="link-button">Save run for feedback</button></div>
+      <div class="card compact"><p class="eyebrow" id="result-tag">TRY AGAIN</p><h2 id="result-title">One more ride?</h2><p id="result-detail"></p><p id="result-record" class="fine"></p><div class="actions"><button id="retry" class="primary">Ride again</button><button id="replay">Replay</button></div><button id="download" class="link-button">Save run for feedback</button></div>
     </section>
     <div id="toast" role="status" aria-live="polite"></div>
+    <dialog id="records" aria-labelledby="times-heading">
+      <form method="dialog"><div class="dialog-heading"><h2 id="times-heading">Fast times</h2><button aria-label="Close fast times">✕</button></div></form>
+      <p id="times-course"></p>
+      <ol id="times-list"></ol>
+      <p id="times-empty">Finish a ride to set your first time.</p>
+      <p id="times-note" class="fine"></p>
+    </dialog>
     <dialog id="options">
       <form method="dialog"><div class="dialog-heading"><h2>Ride settings</h2><button aria-label="Close settings">✕</button></div></form>
       <label>Bike <select id="bike"><option value="0">Regular</option><option value="1">Acro</option></select></label>
@@ -53,6 +61,6 @@
     </dialog>
     <div id="portrait"><span>↻</span><h2>Turn your phone sideways</h2><p>Charging port on your right.</p></div>
   </main>
-  <script type="module" src="./app.js?v=0.1.8"></script>
+  <script type="module" src="./app.js?v=0.1.9"></script>
 </body>
 </html>

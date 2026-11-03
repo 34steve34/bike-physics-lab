@@ -2,3 +2,5 @@
 
 /* Keep riding cues legible against the brighter near ridge. */
 #drive-hints{color:#f1f7f4cc;text-shadow:0 1px 3px #102838,0 0 10px #10283888}#input-meter{background:#17374766}#tilt-dot{box-shadow:0 0 0 1px #16324366}
+
+#times-list{padding-left:28px;margin:18px 0;font-variant-numeric:tabular-nums}#times-list li{padding:8px 5px;border-bottom:1px solid #ffffff15}#times-list li:first-child{color:var(--lime);font-weight:700}#best{font-size:14px}#records p{font-size:13px;line-height:1.5}#records .fine{font-size:11px;color:var(--muted)}
