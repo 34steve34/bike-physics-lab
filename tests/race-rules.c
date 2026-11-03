@@ -73,6 +73,21 @@ int main(void)
 {
     int t,a,n;
     const float tick=1.0f/60;
+    /* The revised Hills run-up has a genuine straight vertical section;
+     * its upper endpoint stays directly below the untouched loop lip. */
+    {
+        float vertical=0;int i,lip=0;
+        lab_reset(4,0);
+        for(i=0;i<count;i++) {
+            const br_board *b=&boards[i];
+            if(fabsf(b->v1.x-15.2f)<1e-5f && fabsf(b->v2.x-15.2f)<1e-5f &&
+                b->v1.y>=2.339f && b->v2.y<=3.191f)
+                vertical+=b->v2.y-b->v1.y;
+            if(fabsf(b->v1.x-15.2f)<1e-5f && fabsf(b->v1.y-4.15f)<1e-5f)lip=1;
+        }
+        assert(fabsf(vertical-.85f)<1e-4f && lip);
+        puts("PASS: Hills has 0.85 units of straight vertical approach aligned below original loop lip.");
+    }
     gentler_drive(0);gentler_drive(1);
     hard_one_wheel(0);hard_one_wheel(1);
     for(a=0;a<2;a++) {
