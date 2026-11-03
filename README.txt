@@ -40,6 +40,17 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Agility tuning and retained best runs (v0.1.13)
+
+Regular lean response is now 0.9, ten percent below the previous Regular.
+Acro is 1.1, ten percent above the previous Regular (previous Acro was 1.5).
+Engine, suspension and crash rules are unchanged. New physics groups keep old
+times separate. The five fastest distinct finishes now retain their control
+recordings in this browser. Open Times and tap Replay beside a saved time, even
+after reopening the app. Repeated controls are compressed without rounding lean.
+Existing time-only records cannot recover missing controls. Storage is local,
+not synced; blocked/full storage falls back to the current visit with a notice.
+
 ## Crash dissolve and personal-best celebration (v0.1.12)
 
 The app opens on Hills / video with its eight-unit view.
