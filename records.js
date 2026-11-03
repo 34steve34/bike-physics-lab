@@ -1,5 +1,7 @@
 // Records are local to this browser; rules/map IDs keep replays comparable.
 const STORAGE_KEY='bike-lab-fast-times-v1', RULES='drive0855-lean090-110-v1';
+// Regular physics are unchanged; keep its existing times and recordings.
+const rulesFor=bike=>bike==='acro'?'drive0855-lean100-v1':RULES;
 const validTicks=t=>Number.isInteger(t)&&t>0&&t<=36000;
 function clean(value){
   if(!Array.isArray(value))return [];
@@ -25,10 +27,10 @@ function pack(run,map,bike,ticks){
     if(last&&last[1]===f[0]&&last[2]===f[1]&&last[3]===f[2])last[0]++;
     else blocks.push([1,...f]);
   }
-  return {schema:1,rules:RULES,map,track:run.track,acro:run.acro,physicsHz:60,blocks,final:run.final.slice()};
+  return {schema:1,rules:rulesFor(bike),map,track:run.track,acro:run.acro,physicsHz:60,blocks,final:run.final.slice()};
 }
 function unpack(run,map,bike,ticks){
-  if(!run||run.schema!==1||run.rules!==RULES||run.map!==map||!Array.isArray(run.blocks)||run.blocks.length>36000)return null;
+  if(!run||run.schema!==1||run.rules!==rulesFor(bike)||run.map!==map||!Array.isArray(run.blocks)||run.blocks.length>36000)return null;
   const frames=[];
   for(const b of run.blocks){
     if(!Array.isArray(b)||b.length!==4||!validTicks(b[0])||frames.length+b[0]>36000)return null;
@@ -47,7 +49,7 @@ export function createTimes(getStorage){
     }catch{persistent=false;}
     return memory;
   }
-  const key=(map,bike)=>JSON.stringify([RULES,map,bike]);
+  const key=(map,bike)=>JSON.stringify([rulesFor(bike),map,bike]);
   const entries=(map,bike)=>clean(read()[key(map,bike)]).map(e=>({seconds:e.ticks/60,hasReplay:!!unpack(e.run,map,bike,e.ticks)}));
   const list=(map,bike)=>clean(read()[key(map,bike)]).map(e=>e.ticks/60);
   function replay(map,bike,rank){
