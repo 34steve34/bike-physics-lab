@@ -106,8 +106,8 @@ void lab_reset(int track, int acro)
     /* A fresh copy on every reset keeps upstream data intact and prevents
      * repeated restarts from multiplying the feel adjustment again. */
     ride_def=*bike.def;
-    ride_def.drive*=0.95f;
-    ride_def.drive_cap*=0.95f;
+    ride_def.drive*=0.855f;
+    ride_def.drive_cap*=0.855f;
     bike.def=&ride_def;
     elapsed = last_lean = 0; status = rear_grounded = front_grounded = 0;
     loop_entered=race_started=0;
