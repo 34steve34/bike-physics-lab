@@ -116,10 +116,19 @@ for(const acro of [0,1])for(const first of ['gas','brake']){
   wasm._lab_reset(0,acro);
   for(let n=0;n<600;n++)wasm._lab_step(0,0,0);
   assert.equal(wasm._lab_get(15),0,'waiting does not count');
-  wasm._lab_step(.01,0,0);assert.equal(wasm._lab_get(15),0,'tilt does not start clock');
-  wasm._lab_step(0,+(first==='gas'),+(first==='brake'));
+  wasm._lab_step(.5,0,0);assert.equal(wasm._lab_get(15),0,'tilt does not start clock');
+  assert.equal(wasm._lab_get(18),0,'lean is locked before first gas/brake');
+  wasm._lab_step(.2,+(first==='gas'),+(first==='brake'));
+  assert(Math.abs(wasm._lab_get(18)-.2)<1e-6,'first gas/brake also unlocks lean');
   assert(Math.abs(wasm._lab_get(15)-1/60)<1e-6,first+' starts clock');
   wasm._lab_step(0,0,0);assert(Math.abs(wasm._lab_get(15)-2/60)<1e-6,'release keeps timing');
   wasm._lab_reset(0,acro);assert.equal(wasm._lab_get(15),0,'restart clears clock');
+  wasm._lab_step(.5,0,0);assert.equal(wasm._lab_get(18),0,'restart relocks lean');
 }
 console.log('PASS: browser clock waits for first gas/brake, keeps running on release, resets to zero.');
+for(const acro of [0,1]){
+  const pose=lean=>{wasm._lab_reset(0,acro);for(let n=0;n<120;n++)wasm._lab_step(lean,0,0);return Array.from({length:22},(_,i)=>wasm._lab_get(i));};
+  assert.deepEqual(pose(.5),pose(0),'pre-start lean cannot change bike pose');
+  assert.deepEqual(pose(-.5),pose(0),'pre-start forward lean cannot change bike pose');
+}
+console.log('PASS: browser pre-start lean has no effect on either bike.');
