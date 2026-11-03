@@ -16,10 +16,39 @@ static void place_upper(float x,float y,float vx)
     update_snapshot();
 }
 
+/* Front wheel first, then upper mass loads the suspension. */
+static void hard_one_wheel(int acro)
+{
+    int ai,vi,n,found=0;
+    for(ai=0;ai<5;ai++)for(vi=0;vi<5;vi++) {
+        float angle=(-30.0f-15.0f*ai)*.01745329252f;
+        float c=cosf(angle),s=sinf(angle),speed=4.0f+2.0f*vi;
+        br_body *bodies[3];int i,first_contact=0;
+        lab_reset(0,acro);race_started=1;
+        bodies[0]=&bike.head;bodies[1]=&bike.front;bodies[2]=&bike.rear;
+        for(i=0;i<3;i++) {
+            float x=bodies[i]->pos.x-.17f,y=bodies[i]->pos.y-spawn_y-.1f;
+            v2_set(&bodies[i]->pos,x*c-y*s,.15f+x*s+y*c);
+            v2_set(&bodies[i]->vel,0,-speed);
+        }
+        br_composed_update(&bike.chassis);update_snapshot();
+        for(n=0;n<120 && !status;n++) {
+            lab_step(0,0,0);assert(status!=3);
+            if(!first_contact && (rear_grounded || front_grounded))
+                first_contact=front_grounded && !rear_grounded?1:2;
+        }
+        if(status==1 && first_contact==1)for(i=0;i<count;i++)
+            if(upper_point_hits(&boards[i]))found=1;
+    }
+    assert(found);
+    printf("PASS: %s hard front-wheel-first landing can crash via upper-point contact.\n",acro?"Acro":"Regular");
+}
+
 int main(void)
 {
     int t,a,n;
     const float tick=1.0f/60;
+    hard_one_wheel(0);hard_one_wheel(1);
     for(a=0;a<2;a++) {
         float neutral[22];int i;
         lab_reset(0,a);for(i=0;i<120;i++)lab_step(0,0,0);
