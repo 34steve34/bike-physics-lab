@@ -42,6 +42,44 @@ test('consecutive writers preserve other maps and corrupted times are filtered',
   const disk=storage(),a=createTimes(()=>disk),b=createTimes(()=>disk);
   a.record('one','regular',4,2);b.record('two','regular',5,2);a.record('one','regular',3,2);
   assert.deepEqual(b.list('one','regular'),[3,4]);assert.deepEqual(b.list('two','regular'),[5]);
-  disk.setItem('bike-lab-fast-times-v1',JSON.stringify({'["standard-drive0855-v1","one","regular"]':[0,-2,null,300,300,120,1.4,'90']}));
+  disk.setItem('bike-lab-fast-times-v1',JSON.stringify({'["drive0855-lean090-110-v1","one","regular"]':[0,-2,null,300,300,120,1.4,'90']}));
   assert.deepEqual(a.list('one','regular'),[2,5]);
+});
+
+function run(seconds,track=4,acro=0,lean=.123456789){
+  const final=Array(22).fill(0);final[14]=2;final[15]=seconds;final[19]=track;
+  return {track,acro,physicsHz:60,frames:Array.from({length:seconds*60},()=>[lean,1,0]),final};
+}
+test('recordings survive reload and decode every original input without quantization',()=>{
+ const disk=storage(),a=createTimes(()=>disk),original=run(2);
+ original.frames.unshift([0,0,0],[0,0,0]);
+ a.record('hills-v2','regular',2,2,false,original);
+ const b=createTimes(()=>disk),saved=b.replay('hills-v2','regular',0);
+ assert.deepEqual(saved,original);assert.equal(b.entries('hills-v2','regular')[0].hasReplay,true);
+ assert.equal(b.replay('hills-v2','acro',0),null);assert.equal(b.replay('flat-v1','regular',0),null);
+ assert.ok(disk.getItem('bike-lab-fast-times-v1').length<1000,'constant input compressed');
+});
+test('five fastest recordings stay attached after sorting; tie and replay cannot replace them',()=>{
+ const disk=storage(),a=createTimes(()=>disk);
+ for(const t of [9,8,7,6,5,4])a.record('hills-v2','regular',t,2,false,run(t));
+ assert.deepEqual(a.list('hills-v2','regular'),[4,5,6,7,8]);
+ for(let i=0;i<5;i++)assert.equal(a.replay('hills-v2','regular',i).final[15],i+4);
+ a.record('hills-v2','regular',4,2,false,run(4,4,0,-.2));
+ assert.equal(a.replay('hills-v2','regular',0).frames[0][0],.123456789);
+ a.record('hills-v2','regular',1,2,true,run(1));assert.equal(a.list('hills-v2','regular')[0],4);
+});
+test('truncated or damaged recordings cannot be replayed, while time remains visible',()=>{
+ const disk=storage(),a=createTimes(()=>disk),bad=run(2);bad.frames.pop();
+ a.record('hills-v2','regular',2,2,false,bad);assert.equal(a.replay('hills-v2','regular',0),null);
+ assert.deepEqual(a.list('hills-v2','regular'),[2]);
+ const good=run(1);a.record('hills-v2','regular',1,2,false,good);
+ const data=JSON.parse(disk.getItem('bike-lab-fast-times-v1'));
+ const id=Object.keys(data)[0];data[id][0].run.blocks[0][0]=999999;
+ disk.setItem('bike-lab-fast-times-v1',JSON.stringify(data));
+ assert.equal(createTimes(()=>disk).replay('hills-v2','regular',0),null);
+});
+test('storage failure retains replay during visit and does not throw',()=>{
+ const a=createTimes(()=>({getItem:()=>null,setItem:()=>{throw Error('quota');}}));
+ assert.equal(a.record('hills-v2','regular',1,2,false,run(1)).persistent,false);
+ assert.deepEqual(a.replay('hills-v2','regular',0),run(1));
 });
