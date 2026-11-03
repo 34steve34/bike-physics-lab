@@ -120,17 +120,6 @@ static int road_active(int i)
     return loop_entered ? road[i]!=ROAD_ENTRY : road[i]!=ROAD_RETURN;
 }
 
-/* Contact belongs to the three masses, not the lines between them. Keep
- * upstream's upper-point kill distance, excluding its extra edge tests. */
-static int upper_point_hits(const br_board *board)
-{
-    vec2 contact,delta;
-    if (bike.state==BR_BIKE_CRASHED || bike.def->invulnerable) return 0;
-    contact=br_closest_point_on_segment(&bike.head.pos,&board->v1,&board->v2);
-    v2_sub(v2_copy(&delta,&contact),&bike.head.pos);
-    return v2_len(&delta)<=0.05f;
-}
-
 void lab_step(float lean, int gas, int brake)
 {
     int i,n; const float frame_dt = 1.0f/60.0f;
@@ -172,7 +161,7 @@ void lab_step(float lean, int gas, int brake)
         status=3;
     } else {
         for (i=0;i<count;i++) {
-            if (road_active(i) && upper_point_hits(&boards[i])) { status=1; break; }
+            if (road_active(i) && br_bike_head_hits(&bike,&boards[i])) { status=1; break; }
         }
         if (bike.head.pos.y < -5 || bike.head.pos.x < -11) status=1;
         if (!status && race_started && race_has_finished(bike.head.pos.x,
