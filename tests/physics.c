@@ -53,8 +53,9 @@ static void complete_drop(int acro) {
 /* Test-only feedback supplies ordinary tilt and gas, never moves the bike. */
 static void complete_hills(int acro) {
     const float gains[]={.16f,.12f,.2f,.24f,.28f,.32f,.4f,.08f};
+    const float jumps[]={3.1f,2.8f,3.4f,3.7f};
     int attempt;
-    for(attempt=0;attempt<8;attempt++) {
+    for(attempt=0;attempt<32;attempt++) {
     int n,stage=0,ceiling=0,left_wall=0,exited=0,bowl=0,stairs=0;
     lab_reset(4,acro);
     assert(lab_get(19)==4 && lab_board_count()>400);
@@ -63,7 +64,7 @@ static void complete_hills(int acro) {
         if(!stage && x>14.3f && y>3.6f)stage=1;
         if(stage==1 && x<14.5f && y<3.7f)stage=2;
         if(x<1.4f)target=0;
-        else if(x<3.1f)target=fminf(1.22f,(x-1.4f)*1.3f);
+        else if(x<jumps[attempt%4])target=fminf(1.22f,(x-1.4f)*1.3f);
         else if(x<11.3f)target=-0.785398163f;
         else if(stage==0)target=x<12.9f?0:x<14.85f?fminf(1.02f,(x-12.9f)*1.2f):1.5f;
         else if(stage==1)target=atan2f(y-4.15f,x-14.35f)+1.570796327f;
@@ -75,7 +76,7 @@ static void complete_hills(int acro) {
         else if(x<27.9f)target=.8f;
         angle=atan2f(lab_get(3)-lab_get(1),lab_get(2)-lab_get(0));
         error=target-angle;error=atan2f(sinf(error),cosf(error));
-        input=gains[attempt]*error/(acro?1.5f:1);
+        input=gains[attempt/4]*error/(acro?1.5f:1);
         lab_step(input,1,0); finite_state();
         x=lab_get(8);y=lab_get(9);
         if(x>4 && x<11 && (lab_get(12)||lab_get(13)))stairs=1;
