@@ -38,10 +38,10 @@ static void hard_one_wheel(int acro)
                 first_contact=front_grounded && !rear_grounded?1:2;
         }
         if(status==1 && first_contact==1)for(i=0;i<count;i++)
-            if(upper_point_hits(&boards[i]))found=1;
+            if(br_bike_head_hits(&bike,&boards[i]))found=1;
     }
     assert(found);
-    printf("PASS: %s hard front-wheel-first landing can crash via upper-point contact.\n",acro?"Acro":"Regular");
+    printf("PASS: %s hard front-wheel-first landing can crash via original rider collision rules.\n",acro?"Acro":"Regular");
 }
 
 static void gentler_drive(int acro)
@@ -79,14 +79,17 @@ int main(void)
         for(i=0;i<22;i++)neutral[i]=lab_get(i);
         lab_reset(0,a);for(i=0;i<120;i++)lab_step(i%2?.5f:-.5f,0,0);
         for(i=0;i<22;i++)assert(lab_get(i)==neutral[i]);
-        /* A horizontal board crosses both upper-to-wheel connections,
-         * while every mass remains outside its contact radius. */
+        /* Original rules kill when a board crosses either upper-to-wheel
+         * connection, even while all three masses remain clear. */
         lab_reset(0,a);place_upper(0,.6f,0);count=0;
-        segment(-.12f,.44f,.105f,.44f);
-        lab_step(0,0,0);assert(status==0 && !rear_grounded && !front_grounded);
+        segment(-.12f,.44f,-.06f,.44f);
+        lab_step(0,0,0);assert(status==1 && !rear_grounded && !front_grounded);
+        lab_reset(0,a);place_upper(0,.6f,0);count=0;
+        segment(.04f,.44f,.105f,.44f);
+        lab_step(0,0,0);assert(status==1 && !rear_grounded && !front_grounded);
         /* Crossing the wheel-to-wheel connection adds no collision. */
         lab_reset(0,a);place_upper(0,.6f,0);count=0;
-        segment(0,.18f,0,.52f);
+        segment(0,.18f,0,.3f);
         lab_step(0,0,0);assert(status==0 && !rear_grounded && !front_grounded);
         /* The upper point still crashes and both wheels still contact. */
         lab_reset(0,a);place_upper(0,.6f,0);count=0;
@@ -132,6 +135,6 @@ int main(void)
         { float final_time=elapsed; lab_step(0,1,0);assert(elapsed==final_time); }
     }
     puts("PASS: first-input clock; head right and above ground, including passing below then rising, on all five courses and both bikes.");
-    puts("PASS: connecting lines pass through terrain; upper point crashes, wheel points contact; lean locked until first gas/brake, and relocked on reset.");
+    puts("PASS: original upper-to-wheel crash rules restored; wheel-to-wheel crossing is clear; upper point and wheel contacts retained; pre-start lean stays locked.");
     return 0;
 }
