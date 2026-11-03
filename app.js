@@ -1,13 +1,13 @@
-import createPhysics from './core.mjs?v=0.1.10';
+import createPhysics from './core.mjs?v=0.1.11';
 import {Controls} from './input.js';
 import {Presentation} from './presentation.js';
-import {drawBike} from './bike-drawing.js?v=0.1.10';
-import {createTimes} from './records.js?v=0.1.10';
+import {drawBike} from './bike-drawing.js?v=0.1.11';
+import {createTimes} from './records.js?v=0.1.11';
 
 const $=s=>document.querySelector(s), canvas=$('#view'), ctx=canvas.getContext('2d');
-const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.10';
+const controls=new Controls(canvas), presentation=new Presentation(), VERSION='0.1.11';
 const trackNames=['Flat / wheelies','Ramps / jumps','Loop','Air drop','Hills / video'];
-const mapIds=['flat-v1','ramps-v1','spiral-v2','drop-v2','hills-v1'];
+const mapIds=['flat-v1','ramps-v1','spiral-v2','drop-v2','hills-v2'];
 const times=createTimes(()=>window.localStorage);
 let core, state=new Float32Array(22), boards=[], ready=false, running=false;
 let track=0, acro=0, acc=0, last=0, width=0,height=0,dpr=1;
@@ -176,7 +176,7 @@ function frame(now){
 requestAnimationFrame(frame);
 
 try{
-  const response=await fetch(new URL('./core.wasm?v=0.1.10',import.meta.url));
+  const response=await fetch(new URL('./core.wasm?v=0.1.11',import.meta.url));
   if(!response.ok)throw new Error(`Physics download failed (${response.status})`);
   core=await createPhysics({wasmBinary:await response.arrayBuffer()});
   ready=true;reset();$('#version').textContent=VERSION;$('#ride').disabled=false;$('#ride').textContent='Ride · enable tilt';

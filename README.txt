@@ -40,6 +40,17 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Longer vertical Hills entry (v0.1.11)
+
+The bend below the Hills loop now reaches vertical sooner, followed by 0.85
+units of straight vertical track before the approach ends. The loop entrance,
+approach endpoint and exit platform remain aligned at x=15.2; the loop itself
+has not moved. This follows the user-annotated reference, providing a straight
+section for the bike to settle before jumping across the gap to the upper lip.
+The approach is a smooth monotonic curve with a vertical tangent at the join.
+Engine, springs, gravity and original crash rules remain unchanged. Hills has
+a new map ID for its own times; other maps retain their existing records.
+
 ## Another 10% engine reduction (v0.1.10)
 
 Both bikes now use 90% of v0.1.9 engine pull: drive 15.2 becomes 13.68,
