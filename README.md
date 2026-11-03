@@ -40,6 +40,22 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Restored crash rules and saved fast times (v0.1.9)
+
+The adapter again calls the imported `br_bike_head_hits` rule. Track crossing
+an upper-to-front or upper-to-rear connection crashes the bike, as does proximity
+to the upper point. Wheel-to-wheel crossing alone still is not a rider crash.
+This restores the reconstruction's original rules, not a newly inferred rule
+for the commercial game. Start lock, finish rules and the 95% drive tuning stay.
+
+**Times** shows the five fastest distinct finishes for the selected map and bike;
+the HUD shows the best. Successful live rides count; crashes and replays do not.
+Times persist locally in this browser, across reloads and app updates. They do
+not sync between phones/browsers and clearing site data removes them. If storage
+is blocked or full, a notice explains that times last only for the current visit.
+Stable map and rules IDs separate records; future geometry/physics changes should
+use a new ID so incomparable times do not mix. Earlier runs were not recorded.
+
 ## Gentler drive and clearer scenery (v0.1.8)
 
 Regular and Acro now use 95% of the previous low-speed drive and high-speed
@@ -55,7 +71,7 @@ The background has a brighter sky and two clearly separated ridges. The nearer
 ridge moves four times faster than the distant one. Ridge points are anchored
 to world positions, so crossing a repeat boundary does not change their shape.
 
-## Point contacts and start lock (v0.1.7)
+## Point contacts and start lock (v0.1.7; crash change reverted in v0.1.9)
 
 The two wheels and upper physics mass define three contact points with their
 existing contact radii. Terrain may cross their connecting lines and pass
