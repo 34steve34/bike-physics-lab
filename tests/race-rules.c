@@ -75,7 +75,13 @@ static void agility(void)
     for(a=0;a<2;a++) {
         lab_reset(3,a);
         assert(fabsf(bike.def->lean-(a?1.f:.9f))<1e-6f);
-        for(n=0;n<8;n++)lab_step(.2f,0,1);
+        /* Start well above the platform so front contact cannot gate lean. */
+        bike.head.pos.y+=2;bike.front.pos.y+=2;bike.rear.pos.y+=2;
+        br_composed_update(&bike.chassis);
+        for(n=0;n<8;n++) {
+            lab_step(.2f,0,1);
+            assert(!status && !rear_grounded && !front_grounded);
+        }
         momentum[a]=fabsf(lab_get(17));
         assert(momentum[a]>0);
         for(n=0;n<5;n++)lab_reset(3,a);
