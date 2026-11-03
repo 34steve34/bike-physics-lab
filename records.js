@@ -1,5 +1,5 @@
 // Stable map/rules IDs keep future geometry or physics changes from mixing records.
-const STORAGE_KEY='bike-lab-fast-times-v1', RULES='standard-drive095-v1';
+const STORAGE_KEY='bike-lab-fast-times-v1', RULES='standard-drive0855-v1';
 const validTicks=t=>Number.isInteger(t)&&t>0&&t<=36000;
 const clean=value=>Array.isArray(value)?[...new Set(value.filter(validTicks))].sort((a,b)=>a-b).slice(0,5):[];
 

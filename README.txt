@@ -40,6 +40,15 @@ the upstream physics phase order and its front-contact lean gate. Display refres
 does not change the tick rate. A background tab pauses rather than catching up.
 No reverse, crash debris, saved progression, track editor or variable throttle yet.
 
+## Another 10% engine reduction (v0.1.10)
+
+Both bikes now use 90% of v0.1.9 engine pull: drive 15.2 becomes 13.68,
+and high-speed power 41.8 becomes 37.62. That is 85.5% of the imported
+defaults. Gravity, suspension, braking and crash rules stay the same. Native
+checks compare the new tuning directly against the preceding 95% settings.
+A new rules ID starts separate fast-time lists; older records remain stored
+and are not mixed with this slower tuning.
+
 ## Restored crash rules and saved fast times (v0.1.9)
 
 The adapter again calls the imported `br_bike_head_hits` rule. Track crossing
